@@ -1,0 +1,8 @@
+Question:
+
+- Marche PEAPME ? doit t'on le rajouter a la base des markets
+- pourquoi y a t'il plusieurs symbooles pour une meme entreprise ?
+- les champs isnin, pea etc, sont'ils renseignes dans les fichiers ou on doit trouver via un moyen externe ?
+- pourquoi on a que du compA/B amsterdams et peapme ?
+
+- c'est quoi les (c) (s) dans last ?

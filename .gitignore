@@ -1,5 +1,6 @@
 boursorama/
 docker/
 
-bourse/analyzer/timescaledb_model.py
+
 bourse/dashboard/Makefile
+bourse/analyse/Makefile
