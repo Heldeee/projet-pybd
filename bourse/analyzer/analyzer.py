@@ -3,6 +3,7 @@ import numpy as np
 import sklearn
 from datetime import datetime
 import os
+import glob
 
 import timescaledb_model as tsdb
 
@@ -13,7 +14,7 @@ def store_file(name, website):
     if db.is_file_done(name):
         return
     if website.lower() == "boursorama":
-        market_id = None
+        market_id = "0"
         try:
             market_alias = name.split()[0]
             if market_alias == "peapme":
@@ -49,7 +50,7 @@ def store_file(name, website):
         for name in companies:
             company_id = db.search_company_id(name)
             if company_id == 0:
-                new_companies.append({'name': name, 'mid': int(market_id)})
+                new_companies.append({'name': name, 'mid': int(market_id), 'pea': pea})
 
         if new_companies != []:
             new_companies = pd.DataFrame(new_companies, columns=columns)
@@ -79,11 +80,32 @@ def store_file(name, website):
 
 if __name__ == '__main__':
     #db.execute("DELETE FROM companies", commit=True)
-    path = "data/boursorama/"
-    test = "2020"
-    for root, dirs, files in os.walk(path + test):
+    path = "data/boursorama/2023"
+
+    """for root, dirs, files in os.walk(path):
         for file in files:
-            if test in file:
-                print(file)
+            if db.is_file_done(file):
+                print("File " + file + " already done")
+            else:
+                print("Storing file " + file)
                 store_file(file, "boursorama")
+                db.df_write(pd.DataFrame({'name': [file]}), 'file_done', index=False, if_exists='append')"""
+
+    """pea = glob.glob(path + "/peapme*")
+    other = [file for file in glob.glob(path + "/*") if "peapme" not in file]
+    for file in pea:
+        file = file.split("/")[-1]
+        print("Storing file " + file)
+        store_file(file, "boursorama")
+        db.df_write(pd.DataFrame({'name': [file]}), 'file_done', index=False, if_exists='append')
+        
+
+    for file in other:
+        file = file.split("/")[-1]
+        print("Storing file " + file)
+        store_file(file, "boursorama")
+        db.df_write(pd.DataFrame({'name': [file]}), 'file_done', index=False, if_exists='append')"""
+    
+
+
     print("Done")

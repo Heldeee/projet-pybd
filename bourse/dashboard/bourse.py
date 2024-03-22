@@ -4,6 +4,7 @@ from dash import html
 import dash.dependencies as ddep
 import pandas as pd
 import sqlalchemy
+import plotly.express as px
 
 # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -25,7 +26,8 @@ app.layout = html.Div([
                     ),
                 html.Button('Execute', id='execute-query', n_clicks=0),
                 html.Div(id='query-result'),
-                html.Div(id='stock-market-visualizations')
+                dcc.Input(id='company-id-input', type='number', placeholder='Enter company ID...'),
+                dcc.Graph(id='stock-graph')
              ])
 
 
@@ -44,21 +46,26 @@ def run_query(n_clicks, query):
 
 
 @app.callback(
-    ddep.Output('stock-market-visualizations', 'children'),
-    [ddep.Input('query-result', 'children')]  # You might use the query result to generate visualizations
+    ddep.Output('stock-graph', 'figure'),
+    [ddep.Input('company-id-input', 'value')]
 )
-def display_stock_market_visualizations(query_result):
-    # Placeholder for stock market visualizations
-    # You'll need to implement this part to display the requested features
-    return html.Div([
-        html.H3("Stock Market Visualizations"),
-        # Add components for displaying stock market data as per your requirements
-        # For example:
-        # dcc.Graph(id='stock-price-graph'),
-        # dcc.Graph(id='bollinger-bands-graph'),
-        # html.Table(id='raw-data-table'),
-        # Add more components as needed
-    ])
+def update_graph(company_id):
+    # Requête SQL pour récupérer les données de l'entreprise spécifique
+    query = f"""
+        SELECT date, value
+        FROM stocks
+        WHERE cid = {company_id}
+        ORDER BY date
+    """
+    
+    # Charger les données directement en DataFrame Pandas en utilisant la requête SQL
+    df = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
+    
+    # Créer un graphe à partir des données en utilisant Plotly Express
+    fig = px.line(df, x=df.index, y='value', labels={'x': 'Date', 'y': 'Prix de l\'action'}, 
+                  title='Évolution du prix de l\'action pour une entreprise spécifique')
+    
+    return fig
 
 if __name__ == '__main__':
     app.run(debug=True)

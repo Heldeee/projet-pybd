@@ -240,7 +240,6 @@ class TimescaleStockMarketModel:
         '''
         return  self.raw_query("SELECT EXISTS ( SELECT 1 FROM file_done WHERE name = '%s' );" % name)[0][0]
 
-
 #
 # main
 #
