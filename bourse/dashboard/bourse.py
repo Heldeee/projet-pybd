@@ -128,7 +128,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line'):
         fig.update_layout(title=f'Candlestick Chart for Company {company_id}',
                         xaxis_title='Date',
                         yaxis_title='Price',
-                        xaxis_rangeslider_visible=False)
+                        xaxis_rangeslider_visible=True)
     else:
         query = f"""
         SELECT date, value
