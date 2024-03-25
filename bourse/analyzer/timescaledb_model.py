@@ -196,9 +196,17 @@ class TimescaleStockMarketModel:
 
     # write here your methods which SQL requests
     
-    def search_company(self, name, symbol):
-        res = self.raw_query('SELECT EXISTS (SELECT 1 FROM companies WHERE name = %s AND symbol = %s', (name, symbol))
+    def search_company_symbols(self, company_id, symbol):
+        res = self.raw_query('SELECT EXISTS (SELECT 1 FROM companies WHERE id = %s AND symbol = %s)', (company_id, symbol))
         return res[0][0]
+
+    def search_company_by_id(self, company_id):
+        res = self.raw_query('SELECT * FROM companies WHERE id = %s', (company_id,))
+        return res[0][0]
+    
+    def return_company_id(self, company_name, symbol):
+        res = self.raw_query('SELECT id FROM companies WHERE name = %s AND symbol = %s', (company_name, symbol))
+        return res
 
 
     def search_company_id(self, name, getmax=1, strict=False):

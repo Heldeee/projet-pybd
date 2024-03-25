@@ -106,30 +106,34 @@ def store_files(market, year):
 
     new_companies = []
 
-    res = db.search_company("ACCOR", "1rPAC")
-    print(res)
-    res2 = db.search_company("ACCOR", "caca")
-    print(res2)
     # Groupement par le nom de l'entreprise et ajout des symboles à la liste new_companies
-    """for company_name, symbols in df.groupby('name')['symbol']:
-        company_id = db.search_company_id(company_name, len(symbols.unique()))
-        if company_id == 0:
-            print(company_id, company_name, symbols.unique())
-            for symbol in symbols.unique():
+    for company_name, symbols in df.groupby('name')['symbol']:
+        for symbol in symbols.unique():
+            company_id = db.return_company_id(company_name, symbol)
+            if company_id == []:
                 new_companies.append({
                     'name': company_name,
                     'mid': int(market_id),
                     'symbol': symbol
                 })
-
+                print("New company + symbol added to the database.")
+            else:
+                print("Company and symbol already in the database.", company_id, company_name, symbol)
     if new_companies:
         new_companies_df = pd.DataFrame(new_companies)
         db.df_write(new_companies_df, 'companies', index=False, if_exists='append')
         print("New companies added to the database.")
     else:
-        print("No new companies to add to the database.")"""
+        print("No new companies to add to the database.")
 
-
+    # Ajout des stocks
+    stocks_df = pd.DataFrame({
+        'date': df.index,
+        'cid': df['name'].apply(lambda x: db.search_company_id(x, df.loc[x].symbol.unique()[0])),
+        'value': df['last'],
+        'volume': df['volume']
+    })
+    db.df_write(stocks_df, 'stocks', index=False, if_exists='append')
 
     
 if __name__ == '__main__':
