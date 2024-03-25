@@ -117,12 +117,18 @@ def update_graph(company_id, start_date, end_date, graph_type='line'):
         ORDER BY date
         """
         df = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
-        fig.add_trace(go.Candlestick(x=df.index,
-                                         open=df['open'],
-                                         high=df['high'],
-                                         low=df['low'],
-                                         close=df['close'],
-                                         name=f'Company {company_id}'))
+        fig = go.Figure(data=[go.Candlestick(x=df.index,
+                                            open=df['open'],
+                                            high=df['high'],
+                                            low=df['low'],
+                                            close=df['close'],
+                                            name=f'Company {company_id}')])
+
+        # Personnalisation facultative du graphique
+        fig.update_layout(title=f'Candlestick Chart for Company {company_id}',
+                        xaxis_title='Date',
+                        yaxis_title='Price',
+                        xaxis_rangeslider_visible=False)
     else:
         query = f"""
         SELECT date, value
@@ -131,8 +137,11 @@ def update_graph(company_id, start_date, end_date, graph_type='line'):
         ORDER BY date
         """
         df = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
-        
-        fig.add_trace(go.Scatter(x=df.index, y=df['value'], mode='lines', name=f'Company {company_id}'))
+        avg = df['value'].mean()
+        fig = px.line(df, x=df.index, y='value', labels={'x': 'Date', 'y': 'Stock Price'}, 
+                          title=f'Stock Price Evolution for Company {company_id}')
+        fig.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Average: {avg:.2f}',
+                        annotation_position="bottom right")
 
     fig.update_layout(title='Stock Prices',
                       xaxis_title='Date',

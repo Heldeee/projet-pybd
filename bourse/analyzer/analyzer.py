@@ -39,7 +39,7 @@ def store_file(name, website):
         date_string = date_string.replace('.bz2', '')
 
         companies = df['name'].unique()
-
+        print(df.head())
         #COMPANY
         columns = ['name', 'mid', 'symbol', 'symbol_nf', 'isin', 'reuters', 'boursorama', 'pea', 'sector']
         new_companies = []
@@ -88,14 +88,15 @@ def store_file(name, website):
 
 if __name__ == '__main__':
     TEST = True
+    store_file("amsterdam 2021-12-31 14:52:01.606661.bz2", "boursorama")
     if TEST:
-        path = "data/boursorama/2020"
+        """path = "data/boursorama/2020"
 
         for root, dirs, files in os.walk(path):
             for file in files:
                 if not db.is_file_done(file):
                     print("Storing file " + file)
-                    store_file(file, "boursorama")
+                    store_file(file, "boursorama")"""
     else:
         path = "data/boursorama/"
 
