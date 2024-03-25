@@ -6,6 +6,7 @@ import sqlalchemy
 import plotly.express as px
 import plotly.graph_objects as go
 import datetime as dt
+import numpy as np
 
 import logging  
 
@@ -53,6 +54,15 @@ app.layout = html.Div([
                     labelStyle={'display': 'inline-block'}
                 ),
 
+                dcc.Checklist(
+                    id='bollinger-bands-checkbox',
+                    options=[
+                        {'label': 'Bollinger bands', 'value': 'show_bollinger'}
+                    ],
+                    value=[],
+                    labelStyle={'display': 'block'}
+                ),
+
                 dcc.DatePickerRange(
                     id='date-picker-range',
                     min_date_allowed=dt.datetime(2019, 1, 1),
@@ -85,9 +95,10 @@ def run_query(n_clicks, query):
     [ddep.Input('company-dropdown', 'value'),
      ddep.Input('date-picker-range', 'start_date'),
      ddep.Input('date-picker-range', 'end_date'),
-     ddep.Input('graph-type', 'value')]
+     ddep.Input('graph-type', 'value'),
+     ddep.Input('bollinger-bands-checkbox', 'value')]
 )
-def update_graph(company_id, start_date, end_date, graph_type='line'):
+def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None):
     if company_id is None:
         return {}
 
@@ -123,11 +134,21 @@ def update_graph(company_id, start_date, end_date, graph_type='line'):
                                             low=df['low'],
                                             close=df['close'],
                                             name=f'Company {company_id}')])
+        
+        # Ajoute les bandes de Bollinger si la case associée est cochée
+        if 'show_bollinger' in bollinger_bands:
+            df['20_MA'] = df['close'].rolling(window=20).mean()
+            df['20_std'] = df['close'].rolling(window=20).std()
+            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'], mode='lines', name='20-day Moving Average'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'] + 2 * df['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'] - 2 * df['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
 
         # Personnalisation facultative du graphique
         fig.update_layout(title=f'Candlestick Chart for Company {company_id}',
                         xaxis_title='Date',
                         yaxis_title='Price',
+                        # yaxis_type='log',
+                        # yaxis_range=[np.log10(df['value'].min() - 1), np.log10(df['value'].max() + 1)],
                         xaxis_rangeslider_visible=True)
     else:
         query = f"""
@@ -140,12 +161,24 @@ def update_graph(company_id, start_date, end_date, graph_type='line'):
         avg = df['value'].mean()
         fig = px.line(df, x=df.index, y='value', labels={'x': 'Date', 'y': 'Stock Price'}, 
                           title=f'Stock Price Evolution for Company {company_id}')
+        
+         # Ajouter les bandes de Bollinger si la case à cocher est cochée
+        if 'show_bollinger' in bollinger_bands:
+            df['20_MA'] = df['value'].rolling(window=20).mean()
+            df['20_std'] = df['value'].rolling(window=20).std()
+            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'], mode='lines', name='20-day Moving Average'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'] + 2 * df['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'] - 2 * df['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
+
+        # Ajoute une ligne horizontale pour la moyenne
         fig.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Average: {avg:.2f}',
                         annotation_position="bottom right")
 
     fig.update_layout(title='Stock Prices',
                       xaxis_title='Date',
                       yaxis_title='Stock Price',
+                      # yaxis_type='log',
+                      # axis_range=[np.log10(df['value'].min() - 1), np.log10(df['value'].max() + 1)],
                       xaxis_rangeslider_visible=False)
 
 
