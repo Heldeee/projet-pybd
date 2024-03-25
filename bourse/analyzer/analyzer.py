@@ -91,18 +91,47 @@ def store_files(market, year):
     files = glob.glob("data/boursorama/" + year + "/" + market+ "*")
     df = pd.concat([pd.read_pickle(file) for file in files], keys=[pd.to_datetime(file.split(' ')[-2] + ' ' + file.split(' ')[-1].split('.bz2')[0], format='%Y-%m-%d %H:%M:%S.%f') for file in files], names=['date'])
 
+    if market == "peapme":
+        market_id = db.raw_query("SELECT id FROM markets WHERE alias = %s", ("euronx",))[0][0]
+    else:
+        market_id = db.raw_query("SELECT id FROM markets WHERE alias = %s", (market,))[0][0]
+
+
     df['last'] = df['last'].str.replace('(c)', '')
     df['last'] = df['last'].str.replace('(s)', '')
     df['last'] = df['last'].str.replace(' ', '').astype(float)
 
-    df.reset_index(level=0, inplace=True)
-    df.reset_index(drop=True, inplace=True)
+    df.drop(columns=['symbol'], inplace=True)
+    df.reset_index(level=1, inplace=True)
 
-    #get list of unique companies, 1 company can have multiple symbols
+    new_companies = []
+
+    res = db.search_company("ACCOR", "1rPAC")
+    print(res)
+    res2 = db.search_company("ACCOR", "caca")
+    print(res2)
+    # Groupement par le nom de l'entreprise et ajout des symboles à la liste new_companies
+    """for company_name, symbols in df.groupby('name')['symbol']:
+        company_id = db.search_company_id(company_name, len(symbols.unique()))
+        if company_id == 0:
+            print(company_id, company_name, symbols.unique())
+            for symbol in symbols.unique():
+                new_companies.append({
+                    'name': company_name,
+                    'mid': int(market_id),
+                    'symbol': symbol
+                })
+
+    if new_companies:
+        new_companies_df = pd.DataFrame(new_companies)
+        db.df_write(new_companies_df, 'companies', index=False, if_exists='append')
+        print("New companies added to the database.")
+    else:
+        print("No new companies to add to the database.")"""
+
 
 
     
-
 if __name__ == '__main__':
     TEST = True
     store_files("compA", "2020")

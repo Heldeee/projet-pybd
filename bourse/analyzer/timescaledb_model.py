@@ -195,6 +195,11 @@ class TimescaleStockMarketModel:
             self.__connection.commit()
 
     # write here your methods which SQL requests
+    
+    def search_company(self, name, symbol):
+        res = self.raw_query('SELECT EXISTS (SELECT 1 FROM companies WHERE name = %s AND symbol = %s', (name, symbol))
+        return res[0][0]
+
 
     def search_company_id(self, name, getmax=1, strict=False):
         '''
