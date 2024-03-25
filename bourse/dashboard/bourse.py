@@ -22,7 +22,7 @@ server = app.server
 
 # Search bar with smart search (dropdown)
 companies = pd.read_sql_query("SELECT * FROM companies", engine)
-company_options = [{'label': row['name'], 'value': row['id']} for index, row in companies.iterrows()]
+companies_options = [{'label': row['name'], 'value': row['id']} for index, row in companies.iterrows()]
 
 app.layout = html.Div([
                 dcc.Textarea(
@@ -39,8 +39,8 @@ app.layout = html.Div([
 
 
                 dcc.Dropdown(id='company-dropdown',
-                    options= company_options,
-                    multi=True,
+                    multi=False,
+                    options=companies_options,
                     placeholder='Select companies...'
                 ),
                 dcc.RadioItems(
@@ -79,15 +79,16 @@ def run_query(n_clicks, query):
             return html.Pre(str(e))
     return "Enter a query and press execute."
 
+
 @app.callback(
     ddep.Output('stock-graph', 'figure'),
-    [ddep.Input('company-id-input', 'value'),
+    [ddep.Input('company-dropdown', 'value'),
      ddep.Input('date-picker-range', 'start_date'),
      ddep.Input('date-picker-range', 'end_date'),
      ddep.Input('graph-type', 'value')]
 )
-def update_graph(companies, start_date, end_date, graph_type='line'):
-    if companies is None:
+def update_graph(company_id, start_date, end_date, graph_type='line'):
+    if company_id is None:
         return {}
 
     start_date = start_date.split('T')[0]
@@ -101,35 +102,46 @@ def update_graph(companies, start_date, end_date, graph_type='line'):
     end_date = end_date.strftime('%Y-%m-%d')
 
     # SQL query to retrieve data for the specific company within the selected date range
-    data = []
 
-    for company_id in companies:
-        # SQL query to retrieve data for the specific company within the selected date range
+    # SQL query to retrieve data for the specific company within the selected date range
+
+    fig = go.Figure()
+
+    # Load data directly into a Pandas DataFrame using the SQL query
+
+    if graph_type == 'candlestick':
         query = f"""
-            SELECT date, value
-            FROM stocks
-            WHERE cid = {company_id} AND date >= '{start_date}' AND date <= '{end_date}'
-            ORDER BY date
+        SELECT date, open, high, low, close
+        FROM daystocks
+        WHERE cid = {company_id} AND date >= '{start_date}' AND date <= '{end_date}'
+        ORDER BY date
         """
-
-        # Load data directly into a Pandas DataFrame using the SQL query
         df = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
+        fig.add_trace(go.Candlestick(x=df.index,
+                                         open=df['open'],
+                                         high=df['high'],
+                                         low=df['low'],
+                                         close=df['close'],
+                                         name=f'Company {company_id}'))
+    else:
+        query = f"""
+        SELECT date, value
+        FROM stocks
+        WHERE cid = {company_id} AND date >= '{start_date}' AND date <= '{end_date}'
+        ORDER BY date
+        """
+        df = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
+        
+        fig.add_trace(go.Scatter(x=df.index, y=df['value'], mode='lines', name=f'Company {company_id}'))
 
-        if graph_type == 'candlestick':
-            # Create a graph from the data using Plotly Graph Objects
-            fig = go.Figure(data=[go.Candlestick(x=df.index,
-                                                 open=df['value'],
-                                                 high=df['value'],
-                                                 low=df['value'],
-                                                 close=df['value'])])
-        else:
-            # Create a graph from the data using Plotly Express
-            fig = px.line(df, x=df.index, y='value', labels={'x': 'Date', 'y': 'Stock Price'}, 
-                          title=f'Stock Price Evolution for Company {company_id}')
+    fig.update_layout(title='Stock Prices',
+                      xaxis_title='Date',
+                      yaxis_title='Stock Price',
+                      xaxis_rangeslider_visible=False)
 
-        data.append(fig)
 
-    return {'data': data}
+    return fig
+    
 
 if __name__ == '__main__':
     app.run(debug=True)

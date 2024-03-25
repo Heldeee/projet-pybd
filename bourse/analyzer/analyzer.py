@@ -15,23 +15,21 @@ def store_file(name, website):
         return
     if website.lower() == "boursorama":
         market_id = "0"
-        try:
-            market_alias = name.split()[0]
-            if market_alias == "peapme":
-                pea = True
-            else:
-                market_id = db.raw_query("SELECT id FROM markets WHERE alias = %s", (market_alias,))[0][0]
-                pea = False
-        except Exception as e:
-            print("Fichier " + name + " : marché non reconnu")
-            print(e)
+        market_alias = name.split()[0]
+        if market_alias == "peapme":
+            market_id = db.raw_query("SELECT id FROM markets WHERE alias = %s", ("euronx",))[0][0]
+            pea = True
+        else:
+            market_id = db.raw_query("SELECT id FROM markets WHERE alias = %s", (market_alias,))[0][0]
+            pea = False
 
         try:
             df = pd.read_pickle("data/boursorama/" + name)  # is this dir ok for you ?
         except:
             year = name.split()[1].split("-")[0]
             df = pd.read_pickle("data/boursorama/" + year + "/" + name)
-        # to be finished
+
+
         df['last'] = df['last'].str.replace('(c)', '')
         df['last'] = df['last'].str.replace('(s)', '')
         df['last'] = df['last'].str.replace(' ', '').astype(float)
@@ -39,7 +37,6 @@ def store_file(name, website):
         #DATE
         date_string = name.split(' ')[1] + " " +  name.split(' ')[2]
         date_string = date_string.replace('.bz2', '')
-
 
         companies = df['name'].unique()
 
@@ -61,17 +58,28 @@ def store_file(name, website):
 
 
         #STOCKS
-        columns = ['date', 'cid', 'value', 'volume']
-        #create new df based on those colomns
         stocks_df = pd.DataFrame({'date': [date_string] * len(df),
                                     'cid': df['name'].apply(lambda x: db.search_company_id(x)),
                                     'value': df['last'],
-                                    'volume': df['volume']}, columns=columns)
-        try:
-            db.df_write(stocks_df, 'stocks', index=False, if_exists='append')
-        except Exception as e:
-            print("Error while writing stocks to the database")
-            print(e)
+                                    'volume': df['volume']})
+        db.df_write(stocks_df, 'stocks', index=False, if_exists='append')
+
+
+        #DAYSTOCKS
+        daystocks_df = pd.DataFrame({'date': [date_string] * len(df),
+                                     'cid': df['name'].apply(lambda x: db.search_company_id(x)),
+                                     'close': df['last'],
+                                     'volume': df['volume']
+        })
+
+        daystocks_df['open'] = stocks_df.groupby('cid')['value'].transform('first')
+        daystocks_df['high'] = stocks_df.groupby('cid')['value'].transform('max')
+        daystocks_df['low'] = stocks_df.groupby('cid')['value'].transform('min')
+
+        db.df_write(daystocks_df, 'daystocks', index=False, if_exists='append')
+                                     
+        db.df_write(pd.DataFrame({'name': [name]}), 'file_done', index=False, if_exists='append')
+        print("File stored in the database.")
 
         
 
@@ -79,33 +87,23 @@ def store_file(name, website):
 
 
 if __name__ == '__main__':
-    #db.execute("DELETE FROM companies", commit=True)
-    path = "data/boursorama/2023"
+    TEST = True
+    if TEST:
+        path = "data/boursorama/2020"
 
-    """for root, dirs, files in os.walk(path):
-        for file in files:
-            if db.is_file_done(file):
-                print("File " + file + " already done")
-            else:
-                print("Storing file " + file)
-                store_file(file, "boursorama")
-                db.df_write(pd.DataFrame({'name': [file]}), 'file_done', index=False, if_exists='append')"""
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                if not db.is_file_done(file):
+                    print("Storing file " + file)
+                    store_file(file, "boursorama")
+    else:
+        path = "data/boursorama/"
 
-    """pea = glob.glob(path + "/peapme*")
-    other = [file for file in glob.glob(path + "/*") if "peapme" not in file]
-    for file in pea:
-        file = file.split("/")[-1]
-        print("Storing file " + file)
-        store_file(file, "boursorama")
-        db.df_write(pd.DataFrame({'name': [file]}), 'file_done', index=False, if_exists='append')
-        
-
-    for file in other:
-        file = file.split("/")[-1]
-        print("Storing file " + file)
-        store_file(file, "boursorama")
-        db.df_write(pd.DataFrame({'name': [file]}), 'file_done', index=False, if_exists='append')"""
-    
-
+        for years in os.walk(path):
+            print(years)
+            for file in years:
+                if not db.is_file_done(file):
+                    print("Storing file " + file)
+                    store_file(file, "boursorama")
 
     print("Done")
