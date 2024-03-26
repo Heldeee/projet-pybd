@@ -89,6 +89,7 @@ def store_file(filename, website):
 
 def store_files(market, year):
     files = glob.glob("data/boursorama/" + year + "/" + market+ "*")
+    
     df = pd.concat([pd.read_pickle(file) for file in files], keys=[pd.to_datetime(file.split(' ')[-2] + ' ' + file.split(' ')[-1].split('.bz2')[0], format='%Y-%m-%d %H:%M:%S.%f') for file in files], names=['date'])
 
     if market == "peapme":
@@ -116,7 +117,7 @@ def store_files(market, year):
                     'mid': int(market_id),
                     'symbol': symbol
                 })
-                print("New company + symbol added to the database.")
+                print("New company + symbol added to the database.", company_name, symbol)
             else:
                 print("Company and symbol already in the database.", company_id, company_name, symbol)
     if new_companies:
@@ -126,13 +127,22 @@ def store_files(market, year):
     else:
         print("No new companies to add to the database.")
 
-    # Ajout des stocks
+    #get companies table
+    df.reset_index(inplace=True)
+    res = db.df_query("SELECT * FROM companies")
+    companies_df = pd.concat(res)
+
+    merged_df = pd.merge(df, companies_df, how='inner', left_on='symbol', right_on='symbol')
+
+    # Créer le DataFrame 'stocks_df' avec les colonnes 'value', 'volume', 'cid', et 'date'
     stocks_df = pd.DataFrame({
-        'date': df.index,
-        'cid': df['name'].apply(lambda x: db.search_company_id(x, df.loc[x].symbol.unique()[0])),
-        'value': df['last'],
-        'volume': df['volume']
+        'value': merged_df['last'],
+        'volume': merged_df['volume'],
+        'cid': merged_df['id'],  # Utilisation de l'ID de la société provenant de 'companies_df'
+        'date': merged_df['date']
     })
+    # Ajout des stocks
+    #get cid in companies_df from name and symbol
     db.df_write(stocks_df, 'stocks', index=False, if_exists='append')
 
     
