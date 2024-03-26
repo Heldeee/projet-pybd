@@ -89,7 +89,7 @@ def store_file(filename, website):
 
 def store_files(market, year):
     files = glob.glob("data/boursorama/" + year + "/" + market+ "*")
-    
+    files_df = pd.DataFrame({'name': [x.split('/')[-1] for x in files]})
     df = pd.concat([pd.read_pickle(file) for file in files], keys=[pd.to_datetime(file.split(' ')[-2] + ' ' + file.split(' ')[-1].split('.bz2')[0], format='%Y-%m-%d %H:%M:%S.%f') for file in files], names=['date'])
 
     if market == "peapme":
@@ -145,10 +145,12 @@ def store_files(market, year):
     #get cid in companies_df from name and symbol
     db.df_write(stocks_df, 'stocks', index=False, if_exists='append')
 
+    #db.df_write(files_df, 'file_done', index=False, if_exists='append')
+
     
 if __name__ == '__main__':
     TEST = True
-    #store_files("compA", "2020")
+    store_files("compA", "2020")
     if TEST:
         """path = "data/boursorama/2020"
 
