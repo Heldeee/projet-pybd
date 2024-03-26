@@ -71,7 +71,9 @@ app.layout = html.Div([
                     start_date=dt.datetime(2019, 1, 1),
                     end_date=dt.datetime.now()
                 ),
-                dcc.Graph(id='stock-graph')
+                dcc.Graph(id='stock-graph',
+                          config={'displayModeBar': False}),
+                dcc.Graph(id='volume-graph')
              ])
 
 
@@ -91,16 +93,20 @@ def run_query(n_clicks, query):
 
 
 @app.callback(
-    ddep.Output('stock-graph', 'figure'),
+    [ddep.Output('stock-graph', 'figure'),
+     ddep.Output('volume-graph', 'figure')],
     [ddep.Input('company-dropdown', 'value'),
      ddep.Input('date-picker-range', 'start_date'),
      ddep.Input('date-picker-range', 'end_date'),
      ddep.Input('graph-type', 'value'),
-     ddep.Input('bollinger-bands-checkbox', 'value')]
+     ddep.Input('bollinger-bands-checkbox', 'value'),
+     ddep.Input('stock-graph', 'clickData'),
+     ddep.Input('volume-graph', 'clickData')]
 )
-def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None):
+def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None,
+                 stock_click_data=None, volume_click_data=None):
     if company_id is None:
-        return {}
+        return {}, {}
 
     start_date = start_date.split('T')[0]
     end_date = end_date.split('T')[0]
@@ -108,17 +114,11 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
     start_date = dt.datetime.strptime(start_date, '%Y-%m-%d')
     end_date = dt.datetime.strptime(end_date, '%Y-%m-%d')
 
-    # Format the start_date and end_date to be compatible with SQL
     start_date = start_date.strftime('%Y-%m-%d')
     end_date = end_date.strftime('%Y-%m-%d')
 
-    # SQL query to retrieve data for the specific company within the selected date range
-
-    # SQL query to retrieve data for the specific company within the selected date range
-
-    fig = go.Figure()
-
-    # Load data directly into a Pandas DataFrame using the SQL query
+    fig_stock = go.Figure()
+    fig_volume = go.Figure()
 
     if graph_type == 'candlestick':
         query = f"""
@@ -127,29 +127,26 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
         WHERE cid = {company_id} AND date >= '{start_date}' AND date <= '{end_date}'
         ORDER BY date
         """
-        df = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
-        fig = go.Figure(data=[go.Candlestick(x=df.index,
-                                            open=df['open'],
-                                            high=df['high'],
-                                            low=df['low'],
-                                            close=df['close'],
-                                            name=f'Company {company_id}')])
+        df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
+        fig_stock = go.Figure(data=[go.Candlestick(x=df_stock.index,
+                                                    open=df_stock['open'],
+                                                    high=df_stock['high'],
+                                                    low=df_stock['low'],
+                                                    close=df_stock['close'],
+                                                    name=f'Company {company_id}')])
         
-        # Ajoute les bandes de Bollinger si la case associée est cochée
         if 'show_bollinger' in bollinger_bands:
-            df['20_MA'] = df['close'].rolling(window=20).mean()
-            df['20_std'] = df['close'].rolling(window=20).std()
-            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'], mode='lines', name='20-day Moving Average'))
-            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'] + 2 * df['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
-            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'] - 2 * df['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
+            df_stock['20_MA'] = df_stock['close'].rolling(window=20).mean()
+            df_stock['20_std'] = df_stock['close'].rolling(window=20).std()
+            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'], mode='lines', name='20-day Moving Average'))
+            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] + 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
+            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] - 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
 
-        # Personnalisation facultative du graphique
-        fig.update_layout(title=f'Candlestick Chart for Company {company_id}',
-                        xaxis_title='Date',
-                        yaxis_title='Price',
-                        # yaxis_type='log',
-                        # yaxis_range=[np.log10(df['value'].min() - 1), np.log10(df['value'].max() + 1)],
-                        xaxis_rangeslider_visible=True)
+        fig_stock.update_layout(title=f'Candlestick Chart for Company {company_id}',
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                xaxis_rangeslider_visible=True)
+
     else:
         query = f"""
         SELECT date, value
@@ -157,33 +154,50 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
         WHERE cid = {company_id} AND date >= '{start_date}' AND date <= '{end_date}'
         ORDER BY date
         """
-        df = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
-        avg = df['value'].mean()
-        fig = px.line(df, x=df.index, y='value', labels={'x': 'Date', 'y': 'Stock Price'}, 
-                          title=f'Stock Price Evolution for Company {company_id}')
+        df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
+        avg = df_stock['value'].mean()
+        fig_stock = px.line(df_stock, x=df_stock.index, y='value', labels={'x': 'Date', 'y': 'Stock Price'}, title=f'Stock Price Evolution for Company {company_id}')
         
-         # Ajouter les bandes de Bollinger si la case à cocher est cochée
         if 'show_bollinger' in bollinger_bands:
-            df['20_MA'] = df['value'].rolling(window=20).mean()
-            df['20_std'] = df['value'].rolling(window=20).std()
-            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'], mode='lines', name='20-day Moving Average'))
-            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'] + 2 * df['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
-            fig.add_trace(go.Scatter(x=df.index, y=df['20_MA'] - 2 * df['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
+            df_stock['20_MA'] = df_stock['value'].rolling(window=20).mean()
+            df_stock['20_std'] = df_stock['value'].rolling(window=20).std()
+            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'], mode='lines', name='20-day Moving Average'))
+            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] + 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
+            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] - 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
 
-        # Ajoute une ligne horizontale pour la moyenne
-        fig.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Average: {avg:.2f}',
-                        annotation_position="bottom right")
+        fig_stock.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Average: {avg:.2f}',
+                            annotation_position="bottom right")
 
-    fig.update_layout(title='Stock Prices',
-                      xaxis_title='Date',
-                      yaxis_title='Stock Price',
-                      # yaxis_type='log',
-                      # axis_range=[np.log10(df['value'].min() - 1), np.log10(df['value'].max() + 1)],
-                      xaxis_rangeslider_visible=False)
+        fig_stock.update_layout(title='Stock Prices',
+                                xaxis_title='Date',
+                                yaxis_title='Stock Price',
+                                xaxis_rangeslider_visible=False)
+
+    query_volume = f"""
+    SELECT date, volume
+    FROM stocks
+    WHERE cid = {company_id} AND date >= '{start_date}' AND date <= '{end_date}'
+    ORDER BY date
+    """
+    df_volume = pd.read_sql_query(query_volume, engine, index_col='date', parse_dates=['date'])
+
+    fig_volume = px.bar(df_volume, x=df_volume.index, y='volume', labels={'x': 'Date', 'y': 'Volume'}, 
+                        title=f'Volume of Stocks Traded for Company {company_id}')
+
+    fig_volume.update_layout(title='Volume of Stocks Traded',
+                             xaxis_title='Date',
+                             yaxis_title='Volume',
+                             xaxis_rangeslider_visible=False)
+
+    # Si l'utilisateur a cliqué sur un point sur l'un des graphiques, mettre en évidence ce point sur l'autre graphique
+    if stock_click_data:
+        fig_volume.add_vline(x=stock_click_data['points'][0]['x'], line_dash="dash", line_color="red")
+    elif volume_click_data:
+        fig_stock.add_vline(x=volume_click_data['points'][0]['x'], line_dash="dash", line_color="red")
+
+    return fig_stock, fig_volume
 
 
-    return fig
-    
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -148,7 +148,7 @@ def store_files(market, year):
     
 if __name__ == '__main__':
     TEST = True
-    store_files("compA", "2020")
+    #store_files("compA", "2020")
     if TEST:
         """path = "data/boursorama/2020"
 
