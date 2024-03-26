@@ -73,7 +73,8 @@ app.layout = html.Div([
                 ),
                 dcc.Graph(id='stock-graph',
                           config={'displayModeBar': False}),
-                dcc.Graph(id='volume-graph')
+                dcc.Graph(id='volume-graph'),
+                dash_table.DataTable(id='raw-data-table')
              ])
 
 
@@ -94,7 +95,8 @@ def run_query(n_clicks, query):
 
 @app.callback(
     [ddep.Output('stock-graph', 'figure'),
-     ddep.Output('volume-graph', 'figure')],
+     ddep.Output('volume-graph', 'figure'),
+     ddep.Output('raw-data-table', 'data')],
     [ddep.Input('company-dropdown', 'value'),
      ddep.Input('date-picker-range', 'start_date'),
      ddep.Input('date-picker-range', 'end_date'),
@@ -141,6 +143,13 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'], mode='lines', name='20-day Moving Average'))
             fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] + 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
             fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] - 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
+            
+            # Remplir la zone entre les bandes de Bollinger, en arrière-plan
+            fig_stock.add_vrect(x0=df_stock.index[0], x1=df_stock.index[-1],
+                                fillcolor='rgba(0,100,80,0.2)', opacity=0.2,
+                                line=dict(width=0),
+                                layer='below',
+                                row="all", col=1)
 
         fig_stock.update_layout(title=f'Candlestick Chart for Company {company_id}',
                                 xaxis_title='Date',
@@ -164,6 +173,13 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'], mode='lines', name='20-day Moving Average'))
             fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] + 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
             fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] - 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
+
+            # Remplir la zone entre les bandes de Bollinger, en arrière-plan
+            fig_stock.add_vrect(x0=df_stock.index[0], x1=df_stock.index[-1],
+                                fillcolor='rgba(0,100,80,0.2)', opacity=0.2,
+                                line=dict(width=0),
+                                layer='below',
+                                row="all", col=1)
 
         fig_stock.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Average: {avg:.2f}',
                             annotation_position="bottom right")
@@ -195,7 +211,16 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
     elif volume_click_data:
         fig_stock.add_vline(x=volume_click_data['points'][0]['x'], line_dash="dash", line_color="red")
 
-    return fig_stock, fig_volume
+    # Afficher les données brutes dans un tableau
+    stats_stock = df_stock.describe().transpose()
+    stats_stock.columns = ['Count', 'Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max']
+    # stats_stock['Date'] = stats_stock.index
+    # stats_stock['Date'] = stats_stock['Date'].dt.strftime('%Y-%m-%d')
+
+    # Créer une liste de dictionnaires pour les données brutes
+    table_data = stats_stock.to_dict('records')
+
+    return fig_stock, fig_volume, table_data
 
 
 
