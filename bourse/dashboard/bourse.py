@@ -23,7 +23,7 @@ server = app.server
 
 # Search bar with smart search (dropdown)
 companies = pd.read_sql_query("SELECT * FROM companies", engine)
-companies_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row['id']} for index, row in companies.iterrows()]
+companies_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row['id'] } for index, row in companies.iterrows()]
 
 app.layout = html.Div([
                 dcc.Textarea(
@@ -108,7 +108,9 @@ def run_query(n_clicks, query):
 def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None,
                  stock_click_data=None, volume_click_data=None):
     if company_id is None:
-        return {}, {}
+        print("company is empty")
+        return {}, {}, {}
+
 
     start_date = start_date.split('T')[0]
     end_date = end_date.split('T')[0]
@@ -121,8 +123,6 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
 
     fig_stock = go.Figure()
     fig_volume = go.Figure()
-
-    companies_id = ', '.join([str(x) for x in company_id])
 
     if graph_type == 'candlestick':
         query = f"""
@@ -159,68 +159,68 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                 xaxis_rangeslider_visible=True)
 
     else:
-        query = f"""
-        SELECT date, value
-        FROM stocks
-        WHERE cid IN ({companies_id}) AND date >= '{start_date}' AND date <= '{end_date}'
-        ORDER BY date
-        """
-        df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
-        avg = df_stock['value'].mean()
-        fig_stock = px.line(df_stock, x=df_stock.index, y='value', labels={'x': 'Date', 'y': 'Stock Price'}, title=f'Stock Price Evolution for Company {company_id}')
-        
-        if 'show_bollinger' in bollinger_bands:
-            df_stock['20_MA'] = df_stock['value'].rolling(window=20).mean()
-            df_stock['20_std'] = df_stock['value'].rolling(window=20).std()
-            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'], mode='lines', name='20-day Moving Average'))
-            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] + 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
-            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] - 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
+        for company in company_id:
+            query = f"""
+            SELECT date, value
+            FROM stocks
+            WHERE cid = {company} AND date >= '{start_date}' AND date <= '{end_date}'
+            ORDER BY date
+            """
+            df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
+            avg = df_stock['value'].mean()
+            company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
+    
+            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['value'], mode='lines', name=f'{company_name}'))
 
-            # Remplir la zone entre les bandes de Bollinger, en arrière-plan
-            fig_stock.add_vrect(x0=df_stock.index[0], x1=df_stock.index[-1],
-                                fillcolor='rgba(0,100,80,0.2)', opacity=0.2,
-                                line=dict(width=0),
-                                layer='below',
-                                row="all", col=1)
+            # Calculate moving average and Bollinger Bands if needed
+            if 'show_bollinger' in bollinger_bands:
+                df_stock['20_MA'] = df_stock['value'].rolling(window=20).mean()
+                df_stock['20_std'] = df_stock['value'].rolling(window=20).std()
+                fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'], mode='lines', name=f'{company_name} - Company {company} - 20-day Moving Average'))
+                fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] + 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name=f'{company_name} - Company {company} - Upper Bollinger Band'))
+                fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] - 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name=f'{company_name} - Company {company} - Lower Bollinger Band'))
 
-        fig_stock.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Average: {avg:.2f}',
+        # Add average line to the plot
+        fig_stock.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Overall Average: {avg:.2f}',
                             annotation_position="bottom right")
 
-        fig_stock.update_layout(title='Stock Prices',
+        # Update layout
+        fig_stock.update_layout(title='Stock Prices Comparison',
                                 xaxis_title='Date',
                                 yaxis_title='Stock Price',
                                 xaxis_rangeslider_visible=False)
 
-    query_volume = f"""
-    SELECT date, volume
-    FROM stocks
-    WHERE cid IN ({companies_id}) AND date >= '{start_date}' AND date <= '{end_date}'
-    ORDER BY date
-    """
-    df_volume = pd.read_sql_query(query_volume, engine, index_col='date', parse_dates=['date'])
+    for company in company_id:
+        query_volume = f"""
+        SELECT date, volume
+        FROM stocks
+        WHERE cid = {company} AND date >= '{start_date}' AND date <= '{end_date}'
+        ORDER BY date
+        """
+        df_volume = pd.read_sql_query(query_volume, engine, index_col='date', parse_dates=['date'])
 
-    fig_volume = px.bar(df_volume, x=df_volume.index, y='volume', labels={'x': 'Date', 'y': 'Volume'}, 
-                        title=f'Volume of Stocks Traded for Company {company_id}')
+        fig_volume = px.bar(df_volume, x=df_volume.index, y='volume', labels={'x': 'Date', 'y': 'Volume'}, 
+                            title=f'Volume of Stocks Traded for Company {company}')
 
-    fig_volume.update_layout(title='Volume of Stocks Traded',
-                             xaxis_title='Date',
-                             yaxis_title='Volume',
-                             xaxis_rangeslider_visible=False)
+        fig_volume.update_layout(title='Volume of Stocks Traded',
+                                xaxis_title='Date',
+                                yaxis_title='Volume',
+                                xaxis_rangeslider_visible=False)
 
-    # Si l'utilisateur a cliqué sur un point sur l'un des graphiques, mettre en évidence ce point sur l'autre graphique
-    if stock_click_data:
-        fig_volume.add_vline(x=stock_click_data['points'][0]['x'], line_dash="dash", line_color="red")
-    elif volume_click_data:
-        fig_stock.add_vline(x=volume_click_data['points'][0]['x'], line_dash="dash", line_color="red")
+        # Si l'utilisateur a cliqué sur un point sur l'un des graphiques, mettre en évidence ce point sur l'autre graphique
+        if stock_click_data:
+            fig_volume.add_vline(x=stock_click_data['points'][0]['x'], line_dash="dash", line_color="red")
+        elif volume_click_data:
+            fig_stock.add_vline(x=volume_click_data['points'][0]['x'], line_dash="dash", line_color="red")
 
-    # Afficher les données brutes dans un tableau
-    stats_stock = df_stock.describe().transpose()
-    stats_stock.columns = ['Count', 'Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max']
-    # stats_stock['Date'] = stats_stock.index
-    # stats_stock['Date'] = stats_stock['Date'].dt.strftime('%Y-%m-%d')
+        # Afficher les données brutes dans un tableau
+        stats_stock = df_stock.describe().transpose()
+        stats_stock.columns = ['Count', 'Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max']
+        # stats_stock['Date'] = stats_stock.index
+        # stats_stock['Date'] = stats_stock['Date'].dt.strftime('%Y-%m-%d')
 
-    # Créer une liste de dictionnaires pour les données brutes
-    table_data = stats_stock.to_dict('records')
+        # Créer une liste de dictionnaires pour les données brutes
+        table_data = stats_stock.to_dict('records')
 
     return fig_stock, fig_volume, table_data
 
