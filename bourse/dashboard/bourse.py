@@ -23,7 +23,7 @@ server = app.server
 
 # Search bar with smart search (dropdown)
 companies = pd.read_sql_query("SELECT * FROM companies", engine)
-companies_options = [{'label': row['name'], 'value': row['id']} for index, row in companies.iterrows()]
+companies_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row['id']} for index, row in companies.iterrows()]
 
 app.layout = html.Div([
                 dcc.Textarea(
@@ -40,7 +40,7 @@ app.layout = html.Div([
 
 
                 dcc.Dropdown(id='company-dropdown',
-                    multi=False,
+                    multi=True,
                     options=companies_options,
                     placeholder='Select companies...'
                 ),

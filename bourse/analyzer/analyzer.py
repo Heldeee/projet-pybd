@@ -150,7 +150,7 @@ def store_files(market, year):
     
 if __name__ == '__main__':
     TEST = True
-    store_files("compA", "2020")
+    #store_files("compA", "2020")
     if TEST:
         """path = "data/boursorama/2020"
 
@@ -159,13 +159,6 @@ if __name__ == '__main__':
                 if not db.is_file_done(file):
                     print("Storing file " + file)
                     store_file(file, "boursorama")"""
-    else:
-        path = "data/boursorama/"
 
-        for dirs in os.walk(path):
-            for files in dirs:
-                for file in files:
-                    print("Storing file " + file)
-                    store_file(file, "boursorama")
 
     print("Done")
