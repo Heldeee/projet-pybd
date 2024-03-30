@@ -122,6 +122,8 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
     fig_stock = go.Figure()
     fig_volume = go.Figure()
 
+    companies_id = ', '.join([str(x) for x in company_id])
+
     if graph_type == 'candlestick':
         query = f"""
         SELECT date, open, high, low, close
@@ -160,7 +162,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
         query = f"""
         SELECT date, value
         FROM stocks
-        WHERE cid = {company_id} AND date >= '{start_date}' AND date <= '{end_date}'
+        WHERE cid IN ({companies_id}) AND date >= '{start_date}' AND date <= '{end_date}'
         ORDER BY date
         """
         df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
@@ -192,7 +194,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
     query_volume = f"""
     SELECT date, volume
     FROM stocks
-    WHERE cid = {company_id} AND date >= '{start_date}' AND date <= '{end_date}'
+    WHERE cid IN ({companies_id}) AND date >= '{start_date}' AND date <= '{end_date}'
     ORDER BY date
     """
     df_volume = pd.read_sql_query(query_volume, engine, index_col='date', parse_dates=['date'])
