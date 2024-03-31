@@ -94,7 +94,9 @@ class TimescaleStockMarketModel:
                   close FLOAT4,
                   high FLOAT4,
                   low FLOAT4,
-                  volume BIGINT
+                  volume BIGINT,
+                  avg FLOAT4,
+                  std FLOAT4
                 );''')
             cursor.execute('''SELECT create_hypertable('daystocks', by_range('date'));''')
             cursor.execute('''CREATE INDEX idx_cid_daystocks ON daystocks (cid, date DESC);''')
