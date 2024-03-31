@@ -82,7 +82,7 @@ class TimescaleStockMarketModel:
                   date TIMESTAMPTZ,
                   cid SMALLINT,
                   value FLOAT4,
-                  volume INT
+                  volume BIGINT
                 );''')
             cursor.execute('''SELECT create_hypertable('stocks', by_range('date'));''')
             cursor.execute('''CREATE INDEX idx_cid_stocks ON stocks (cid, date DESC);''')
@@ -94,7 +94,7 @@ class TimescaleStockMarketModel:
                   close FLOAT4,
                   high FLOAT4,
                   low FLOAT4,
-                  volume INT
+                  volume BIGINT
                 );''')
             cursor.execute('''SELECT create_hypertable('daystocks', by_range('date'));''')
             cursor.execute('''CREATE INDEX idx_cid_daystocks ON daystocks (cid, date DESC);''')

@@ -74,7 +74,7 @@ app.layout = html.Div([
                 dcc.Graph(id='stock-graph',
                           config={'displayModeBar': False}),
                 dcc.Graph(id='volume-graph'),
-                dash_table.DataTable(id='raw-data-table')
+                #dash_table.DataTable(id='raw-data-table')
              ])
 
 
@@ -124,53 +124,67 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
     fig_stock = go.Figure()
     fig_volume = go.Figure()
 
+    #DAYSTOCKS PART
     if graph_type == 'candlestick':
-        query = f"""
-        SELECT date, open, high, low, close
-        FROM daystocks
-        WHERE cid = {company_id} AND date >= '{start_date}' AND date <= '{end_date}'
-        ORDER BY date
-        """
-        df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
-        fig_stock = go.Figure(data=[go.Candlestick(x=df_stock.index,
-                                                    open=df_stock['open'],
-                                                    high=df_stock['high'],
-                                                    low=df_stock['low'],
-                                                    close=df_stock['close'],
-                                                    name=f'Company {company_id}')])
-        
-        if 'show_bollinger' in bollinger_bands:
-            df_stock['20_MA'] = df_stock['close'].rolling(window=20).mean()
-            df_stock['20_std'] = df_stock['close'].rolling(window=20).std()
-            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'], mode='lines', name='20-day Moving Average'))
-            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] + 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
-            fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] - 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
-            
-            # Remplir la zone entre les bandes de Bollinger, en arrière-plan
-            fig_stock.add_vrect(x0=df_stock.index[0], x1=df_stock.index[-1],
-                                fillcolor='rgba(0,100,80,0.2)', opacity=0.2,
-                                line=dict(width=0),
-                                layer='below',
-                                row="all", col=1)
-
-        fig_stock.update_layout(title=f'Candlestick Chart for Company {company_id}',
-                                xaxis_title='Date',
-                                yaxis_title='Price',
-                                xaxis_rangeslider_visible=True)
-
-    else:
         for company in company_id:
             query = f"""
+            SELECT date, open, high, low, close
+            FROM daystocks
+            WHERE cid = {company} AND date >= '{start_date}' AND date <= '{end_date}'
+            ORDER BY date
+            """
+            df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
+            company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
+            fig_stock.add_trace(go.Candlestick(x=df_stock.index,
+                                               open=df_stock['open'],
+                                               high=df_stock['high'],
+                                               low=df_stock['low'],
+                                               close=df_stock['close'],
+                                               name=f'{company_name}',
+                                               increasing_line_color='green',
+                                               decreasing_line_color='red',
+                                               whiskerwidth=0.2, opacity=0.8,
+                                               showlegend=True,
+                                               hoverinfo='all'))
+            
+            fig_stock.update_layout(xaxis_rangeslider_visible=False)
+            
+            if 'show_bollinger' in bollinger_bands:
+                df_stock['20_MA'] = df_stock['close'].rolling(window=20).mean()
+                df_stock['20_std'] = df_stock['close'].rolling(window=20).std()
+                fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'], mode='lines', name='20-day Moving Average'))
+                fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] + 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Upper Bollinger Band'))
+                fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['20_MA'] - 2 * df_stock['20_std'], mode='lines', line=dict(color='green', width=1), name='Lower Bollinger Band'))
+                
+                # Remplir la zone entre les bandes de Bollinger, en arrière-plan
+                fig_stock.add_vrect(x0=df_stock.index[0], x1=df_stock.index[-1],
+                                    fillcolor='rgba(0,100,80,0.2)', opacity=0.2,
+                                    line=dict(width=0),
+                                    layer='below',
+                                    row="all", col=1)
+
+            fig_stock.update_layout(title=f'Candlestick Chart for Company {company_id}',
+                                    xaxis_title='Date',
+                                    yaxis_title='Price',
+                                    xaxis_rangeslider_visible=True)
+
+    else:
+        #STOCKS PART
+        for company in company_id:
+            stocks_query = f"""
             SELECT date, value
             FROM stocks
             WHERE cid = {company} AND date >= '{start_date}' AND date <= '{end_date}'
             ORDER BY date
             """
-            df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
+
+            df_stock = pd.read_sql_query(stocks_query, engine, index_col='date', parse_dates=['date'])
             avg = df_stock['value'].mean()
             company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
     
             fig_stock.add_trace(go.Scatter(x=df_stock.index, y=df_stock['value'], mode='lines', name=f'{company_name}'))
+
+            fig_volume.add_trace(go.Bar(x=df_stock.index, y=df_stock['volume'], name=f'{company_name}'))
 
             # Calculate moving average and Bollinger Bands if needed
             if 'show_bollinger' in bollinger_bands:
@@ -189,40 +203,16 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                 xaxis_title='Date',
                                 yaxis_title='Stock Price',
                                 xaxis_rangeslider_visible=False)
+        
+        fig_volume.update_layout(title='Volume Comparison',
+                                    xaxis_title='Date',
+                                    yaxis_title='Volume',
+                                    xaxis_rangeslider_visible=False)
+        
 
-    for company in company_id:
-        query_volume = f"""
-        SELECT date, volume
-        FROM stocks
-        WHERE cid = {company} AND date >= '{start_date}' AND date <= '{end_date}'
-        ORDER BY date
-        """
-        df_volume = pd.read_sql_query(query_volume, engine, index_col='date', parse_dates=['date'])
 
-        fig_volume = px.bar(df_volume, x=df_volume.index, y='volume', labels={'x': 'Date', 'y': 'Volume'}, 
-                            title=f'Volume of Stocks Traded for Company {company}')
 
-        fig_volume.update_layout(title='Volume of Stocks Traded',
-                                xaxis_title='Date',
-                                yaxis_title='Volume',
-                                xaxis_rangeslider_visible=False)
-
-        # Si l'utilisateur a cliqué sur un point sur l'un des graphiques, mettre en évidence ce point sur l'autre graphique
-        if stock_click_data:
-            fig_volume.add_vline(x=stock_click_data['points'][0]['x'], line_dash="dash", line_color="red")
-        elif volume_click_data:
-            fig_stock.add_vline(x=volume_click_data['points'][0]['x'], line_dash="dash", line_color="red")
-
-        # Afficher les données brutes dans un tableau
-        stats_stock = df_stock.describe().transpose()
-        stats_stock.columns = ['Count', 'Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max']
-        # stats_stock['Date'] = stats_stock.index
-        # stats_stock['Date'] = stats_stock['Date'].dt.strftime('%Y-%m-%d')
-
-        # Créer une liste de dictionnaires pour les données brutes
-        table_data = stats_stock.to_dict('records')
-
-    return fig_stock, fig_volume, table_data
+    return fig_stock, fig_volume, {}
 
 
 
