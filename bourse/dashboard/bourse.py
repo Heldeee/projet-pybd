@@ -27,55 +27,61 @@ companies = pd.read_sql_query("SELECT * FROM companies", engine)
 companies_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row['id'] } for index, row in companies.iterrows()]
 
 app.layout = html.Div([
-                dcc.Textarea(
-                    id='sql-query',
-                    value='''
-                        SELECT * FROM pg_catalog.pg_tables
-                            WHERE schemaname != 'pg_catalog' AND 
-                                  schemaname != 'information_schema';
-                    ''',
-                    style={'width': '100%', 'height': 100},
-                    ),
-                html.Button('Execute', id='execute-query', n_clicks=0),
-                html.Div(id='query-result'),
-                html.Div(id='debug-output'),
+    html.Div(className="app-container", children=[
+        html.Div(className="dashboard-header", children="Market Dashboard"),
+        
+        html.Div(className="component", children=[
+            dcc.Textarea(
+                id='sql-query',
+                value='''
+                    SELECT * FROM pg_catalog.pg_tables
+                        WHERE schemaname != 'pg_catalog' AND 
+                              schemaname != 'information_schema';
+                ''',
+                style={'width': '100%', 'height': 100},
+            ),
+            html.Button('Execute', id='execute-query', n_clicks=0),
+            html.Div(id='query-result'),
+            html.Div(id='debug-output'),
+        ]),
+        
+        html.Div(className="component", children=[
+            dcc.Dropdown(id='company-dropdown',
+                multi=True,
+                options=companies_options,
+                placeholder='Select companies...'
+            ),
+            dcc.RadioItems(
+                id='graph-type',
+                options=[
+                    {'label': 'Line', 'value': 'line'},
+                    {'label': 'Candlestick', 'value': 'candlestick'}
+                ],
+                value='line',
+                labelStyle={'display': 'inline-block'}
+            ),
+            dcc.Checklist(
+                id='bollinger-bands-checkbox',
+                options=[
+                    {'label': 'Bollinger bands', 'value': 'show_bollinger'}
+                ],
+                value=[],
+                labelStyle={'display': 'block'}
+            ),
+            dcc.DatePickerRange(
+                id='date-picker-range',
+                min_date_allowed=dt.datetime(2019, 1, 1),
+                max_date_allowed=dt.datetime.now(),
+                initial_visible_month=dt.datetime.now(),
+                start_date=dt.datetime(2019, 1, 1),
+                end_date=dt.datetime.now()
+            ),
+            dcc.Graph(id='graph'),
+            html.Div(id='data-table')
+        ])
+    ])
+])
 
-
-                dcc.Dropdown(id='company-dropdown',
-                    multi=True,
-                    options=companies_options,
-                    placeholder='Select companies...'
-                ),
-                dcc.RadioItems(
-                    id='graph-type',
-                    options=[
-                        {'label': 'Line', 'value': 'line'},
-                        {'label': 'Candlestick', 'value': 'candlestick'}
-                    ],
-                    value='line',
-                    labelStyle={'display': 'inline-block'}
-                ),
-
-                dcc.Checklist(
-                    id='bollinger-bands-checkbox',
-                    options=[
-                        {'label': 'Bollinger bands', 'value': 'show_bollinger'}
-                    ],
-                    value=[],
-                    labelStyle={'display': 'block'}
-                ),
-
-                dcc.DatePickerRange(
-                    id='date-picker-range',
-                    min_date_allowed=dt.datetime(2019, 1, 1),
-                    max_date_allowed=dt.datetime.now(),
-                    initial_visible_month=dt.datetime.now(),
-                    start_date=dt.datetime(2019, 1, 1),
-                    end_date=dt.datetime.now()
-                ),
-                dcc.Graph(id='graph'),
-                html.Div(id='data-table')
-             ])
 
 
 @app.callback( ddep.Output('query-result', 'children'),
