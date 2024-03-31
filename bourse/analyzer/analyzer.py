@@ -40,26 +40,19 @@ def store_files(market, year):
             print("Symbol already exists in the database.", symbol)
         else:
             # Find the corresponding company names for the symbol
-            company_names = df['symbol' == symbol]['name']
-            
-            # Add a new company for each unique symbol
-            for company_name in company_names:
-                company_id = db.return_company_id_symbol(symbol)
-                if company_id == []:
-                    new_companies.append({
-                        'name': company_name,
-                        'mid': int(market_id),
-                        'symbol': symbol
-                    })
-                    print("New company + symbol added to the database.", company_name, symbol)
-                else:
-                    print("Company already in the database.", company_id, company_name, symbol)
+            company_name = df[df['symbol'] == symbol]['name'].iloc[0]
+            new_companies.append({
+                'name': company_name,
+                'mid': int(market_id),
+                'symbol': symbol
+            })
+            #print("New company + symbol added to the database.", company_name, symbol)
+
     if new_companies:
         new_companies_df = pd.DataFrame(new_companies)
+        #print(new_companies_df)
         db.df_write(new_companies_df, 'companies', index=False, if_exists='append')
-        print("New companies added to the database.")
-    else:
-        print("No new companies to add to the database.")
+        #print("New companies added to the database.")
 
     #get companies table
     df.reset_index(inplace=True)
@@ -69,12 +62,12 @@ def store_files(market, year):
     merged_df = pd.merge(df, companies_df, how='inner', left_on='symbol', right_on='symbol')
 
     # Créer le DataFrame 'stocks_df' avec les colonnes 'value', 'volume', 'cid', et 'date'
-    stocks_df = pd.DataFrame({
+    """stocks_df = pd.DataFrame({
         'value': merged_df['last'],
         'volume': merged_df['volume'],
         'cid': merged_df['id'],  # Utilisation de l'ID de la société provenant de 'companies_df'
         'date': merged_df['date']
-    })
+    })"""
     # Ajout des stocks
     #get cid in companies_df from name and symbol
     #db.df_write(stocks_df, 'stocks', index=False, if_exists='append')
@@ -101,8 +94,8 @@ if __name__ == '__main__':
             DATE(date), cid;
     , commit=True)"""
 
-    daystocks = db.df_query("SELECT * FROM daystocks")
+    """daystocks = db.df_query("SELECT * FROM daystocks")
     for row in daystocks:
-        print(row)
+        print(row)"""
 
     print("Done")

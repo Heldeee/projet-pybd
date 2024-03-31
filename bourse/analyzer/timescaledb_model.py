@@ -208,6 +208,10 @@ class TimescaleStockMarketModel:
         res = self.raw_query('SELECT id FROM companies WHERE name = %s AND symbol = %s', (company_name, symbol))
         return res
 
+    def return_company_id_symbol(self, symbol):
+        res = self.raw_query('SELECT id FROM companies WHERE symbol = %s', (symbol,))
+        return res
+
 
     def search_company_id(self, name, getmax=1, strict=False):
         '''
