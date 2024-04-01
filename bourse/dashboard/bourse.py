@@ -6,6 +6,7 @@ import sqlalchemy
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from dateutil.relativedelta import relativedelta
 import datetime as dt
 import numpy as np
 
@@ -27,30 +28,52 @@ companies = pd.read_sql_query("SELECT * FROM companies", engine)
 companies_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row['id'] } for index, row in companies.iterrows()]
 
 app.layout = html.Div([
+    html.Link(
+        rel='stylesheet',
+        href='/assets/styles.css'
+    ),
     html.Div(className="app-container", children=[
         html.Div(className="dashboard-header", children="Market Dashboard"),
         
+        # Premier composant repliable avec la requête SQL
         html.Div(className="component", children=[
-            dcc.Textarea(
-                id='sql-query',
-                value='''
-                    SELECT * FROM pg_catalog.pg_tables
-                        WHERE schemaname != 'pg_catalog' AND 
-                              schemaname != 'information_schema';
-                ''',
-                style={'width': '100%', 'height': 100},
-            ),
-            html.Button('Execute', id='execute-query', n_clicks=0),
-            html.Div(id='query-result'),
-            html.Div(id='debug-output'),
+            html.Details(open=False, children=[
+                html.Summary("SQL Query"),
+                dcc.Textarea(
+                    id='sql-query',
+                    value='''
+                        SELECT * FROM pg_catalog.pg_tables
+                            WHERE schemaname != 'pg_catalog' AND 
+                                  schemaname != 'information_schema';
+                    ''',
+                    style={'width': '100%', 'height': 100},
+                ),
+                html.Button('Execute', id='execute-query', n_clicks=0),
+                html.Div(id='query-result')
+            ])
         ]),
         
-        html.Div(className="component", children=[
+        # Autres composants sur la même ligne
+        html.Div(className="component", style={"flex": "1", "margin-left": "20px"}, children=[
             dcc.Dropdown(id='company-dropdown',
                 multi=True,
                 options=companies_options,
                 placeholder='Select companies...'
             ),
+        ]),
+        
+        html.Div(className="component", style={"flex": "1", "margin-left": "20px"}, children=[
+            dcc.DatePickerRange(
+                id='date-picker-range',
+                min_date_allowed=dt.datetime(2019, 1, 1),
+                max_date_allowed=dt.datetime.now(),
+                initial_visible_month=dt.datetime.now(),
+                start_date=dt.datetime(2019, 1, 1),
+                end_date=dt.datetime.now()
+            ),
+        ]),
+        
+        html.Div(className="component", style={"flex": "1", "margin-left": "20px"}, children=[
             dcc.RadioItems(
                 id='graph-type',
                 options=[
@@ -68,19 +91,28 @@ app.layout = html.Div([
                 value=[],
                 labelStyle={'display': 'block'}
             ),
-            dcc.DatePickerRange(
-                id='date-picker-range',
-                min_date_allowed=dt.datetime(2019, 1, 1),
-                max_date_allowed=dt.datetime.now(),
-                initial_visible_month=dt.datetime.now(),
-                start_date=dt.datetime(2019, 1, 1),
-                end_date=dt.datetime.now()
-            ),
+        ]),
+        
+        html.Div(className="component", style={"flex": "1", "margin-left": "20px"}, children=[
+            dcc.Tabs(id='date-range-button', value='1D', children=[
+                dcc.Tab(label='1D', value='1D'),
+                dcc.Tab(label='5D', value='5D'),
+                dcc.Tab(label='1M', value='1M'),
+                dcc.Tab(label='3M', value='3M'),
+                dcc.Tab(label='1Y', value='1Y'),
+                dcc.Tab(label='2Y', value='2Y'),
+                dcc.Tab(label='5Y', value='5Y')
+            ]),
+        ]),
+
+        # Graph et tableau de données
+        html.Div(className="component", style={"flex": "1", "margin-top": "20px"}, children=[
             dcc.Graph(id='graph'),
             html.Div(id='data-table')
         ])
     ])
 ])
+
 
 
 
@@ -137,21 +169,48 @@ def update_data(company_ids):
      ddep.Input('date-picker-range', 'start_date'),
      ddep.Input('date-picker-range', 'end_date'),
      ddep.Input('graph-type', 'value'),
-     ddep.Input('bollinger-bands-checkbox', 'value')]
+     ddep.Input('bollinger-bands-checkbox', 'value'),
+     ddep.Input('date-range-button', 'n_clicks')]
 )
-def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None):
+def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None, n_clicks=None):
     if company_id is None:
         return [go.Figure()]
 
+    if n_clicks is not None:
+        ctx = dash.callback_context
+        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
 
-    start_date = start_date.split('T')[0]
-    end_date = end_date.split('T')[0]
+        # Set start_date and end_date based on the clicked button
+        if triggered_id == '1D':
+            start_date = (dt.datetime.now() - dt.timedelta(days=1)).strftime('%Y-%m-%d')
+            end_date = dt.datetime.now().strftime('%Y-%m-%d')
+        elif triggered_id == '5D':
+            start_date = (dt.datetime.now() - dt.timedelta(days=5)).strftime('%Y-%m-%d')
+            end_date = dt.datetime.now().strftime('%Y-%m-%d')
+        elif triggered_id == '1M':
+            start_date = (dt.datetime.now() - relativedelta(months=1)).replace(day=1).strftime('%Y-%m-%d')
+            end_date = dt.datetime.now().strftime('%Y-%m-%d')
+        elif triggered_id == '3M':
+            start_date = (dt.datetime.now() - relativedelta(months=3)).replace(day=1).strftime('%Y-%m-%d')
+            end_date = dt.datetime.now().strftime('%Y-%m-%d')
+        elif triggered_id == '1Y':
+            start_date = (dt.datetime.now() - relativedelta(years=1)).replace(day=1).strftime('%Y-%m-%d')
+            end_date = dt.datetime.now().strftime('%Y-%m-%d')
+        elif triggered_id == '2Y':
+            start_date = (dt.datetime.now() - relativedelta(years=2)).replace(day=1).strftime('%Y-%m-%d')
+            end_date = dt.datetime.now().strftime('%Y-%m-%d')
+        elif triggered_id == '5Y':
+            start_date = (dt.datetime.now() - relativedelta(years=5)).replace(day=1).strftime('%Y-%m-%d')
+            end_date = dt.datetime.now().strftime('%Y-%m-%d')
+    else:
+        start_date = start_date.split('T')[0]
+        end_date = end_date.split('T')[0]
 
-    start_date = dt.datetime.strptime(start_date, '%Y-%m-%d')
-    end_date = dt.datetime.strptime(end_date, '%Y-%m-%d')
+        start_date = dt.datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = dt.datetime.strptime(end_date, '%Y-%m-%d')
 
-    start_date = start_date.strftime('%Y-%m-%d')
-    end_date = end_date.strftime('%Y-%m-%d')
+        start_date = start_date.strftime('%Y-%m-%d')
+        end_date = end_date.strftime('%Y-%m-%d')
 
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02)
 

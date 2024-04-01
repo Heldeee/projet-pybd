@@ -631,15 +631,11 @@ there.
   margin-bottom: 20px;
 }
 
-/* Styling for Debug output */
-#debug-output {
-  margin-bottom: 20px;
-}
-
 /* Styling for Company dropdown */
 #company-dropdown {
   width: 100%;
   margin-bottom: 20px;
+  color: #242d7c;
 }
 
 /* Styling for Graph type radio items */
@@ -650,6 +646,7 @@ there.
 /* Styling for Bollinger bands checkbox */
 #bollinger-bands-checkbox {
   margin-bottom: 20px;
+
 }
 
 /* Styling for Date picker range */
@@ -673,7 +670,8 @@ there.
 /* Overall container style */
 .app-container {
   padding: 20px;
-  background-color: #f7f7f7;
+  background-color: #242d7c;
+  color: white;
 }
 
 /* Dashboard header style */
@@ -686,8 +684,8 @@ there.
 
 /* Styling for individual components */
 .component {
-  background-color: #fff;
-  border: 1px solid #ddd;
+  background-color: #263088;
+  border: 1px solid #ba9a0c;
   border-radius: 5px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
