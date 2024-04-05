@@ -278,7 +278,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                                decreasing_line_color='red',
                                                whiskerwidth=0.2, opacity=0.8,
                                                showlegend=True,
-                                               hoverinfo='all'),
+                                               hoverinfo='x+y+z'),
                                                row=1, col=1)
             
 
@@ -316,6 +316,10 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                     line=dict(width=0),
                                     layer='below',
                                     row="all", col=1)
+                
+                if avg_option:
+                    fig.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Overall Average: {avg:.2f}',
+                            annotation_position="bottom right", row=1, col=1)
 
             fig.update_layout(title=f'Candlestick Chart for Company {company_id}',
                                     xaxis_title='Date',
@@ -340,7 +344,12 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                 avg = df_stock['value'].mean()
             company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
     
-            fig.add_trace(go.Scatter(x=df_stock.index, y=df_stock['value'], mode='lines', name=f'{company_name}'), row=1, col=1)
+            fig.add_trace(go.Scatter(x=df_stock.index,
+                                     y=df_stock['value'],
+                                     mode='lines',
+                                     name=f'{company_name}',
+                                     hoverinfo='x+y'),
+                                    row=1, col=1)
 
             fig.add_trace(go.Bar(x=df_stock.index, y=df_stock['volume'], name=f'{company_name}'), row=2, col=1)
             fig.update_layout(title='Volume Comparison',
@@ -348,6 +357,10 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                     yaxis_title='Volume',
                                     xaxis_rangeslider_visible=False)
             fig.update_yaxes(type='log', row=2, col=1)
+
+            if avg_option:
+                fig.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Overall Average: {avg:.2f}',
+                            annotation_position="bottom right", row=1, col=1)
 
             # Calculate moving average and Bollinger Bands if needed
             if 'show_bollinger' in bollinger_bands:
@@ -373,17 +386,12 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                          name=f'{company_name} - Company {company} - Lower Bollinger Band'),
                                     row=1, col=1)
 
-        # Add average line to the plot
-        if avg_option:
-            fig.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Overall Average: {avg:.2f}',
-                            annotation_position="bottom right", row=1, col=1)
-
         # Update layout
         fig.update_layout(title='Stock Prices Comparison',
                                 xaxis_title='Date',
                                 yaxis_title='Stock Price',
                                 xaxis_rangeslider_visible=False,
-                                xaxis=dict(type="category"))
+                                xaxis=dict(type="category", matches='x'))
     
     return [fig]
 
