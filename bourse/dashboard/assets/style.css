@@ -671,7 +671,6 @@ there.
 .app-container {
   padding: 20px;
   background-color: #242d7c;
-  color: white;
 }
 
 /* Dashboard header style */
@@ -689,4 +688,10 @@ there.
   border-radius: 5px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tabs-content {
+  width: 100%;
+  border-collapse: collapse;
+  color: #263088;
 }

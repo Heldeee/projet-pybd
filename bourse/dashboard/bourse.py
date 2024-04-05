@@ -58,7 +58,7 @@ app.layout = html.Div([
             dcc.Dropdown(id='company-dropdown',
                 multi=True,
                 options=companies_options,
-                placeholder='Select companies...'
+                placeholder='Select one or more companies'
             ),
         ]),
         
@@ -91,10 +91,18 @@ app.layout = html.Div([
                 value=[],
                 labelStyle={'display': 'block'}
             ),
+            dcc.Checklist(
+                id='avg-checkbox',
+                options=[
+                    {'label': 'Average', 'value': 'show_avg'}
+                ],
+                value=[],
+                labelStyle={'display': 'block'}
+            ),
         ]),
         
         html.Div(className="component", style={"flex": "1", "margin-left": "20px"}, children=[
-            dcc.Tabs(id='date-range-button', value='1D', children=[
+            dcc.Tabs(id='date-range-button', value=[], children=[
                 dcc.Tab(label='1D', value='1D'),
                 dcc.Tab(label='5D', value='5D'),
                 dcc.Tab(label='1M', value='1M'),
@@ -108,11 +116,12 @@ app.layout = html.Div([
         # Graph et tableau de données
         html.Div(className="component", style={"flex": "1", "margin-top": "20px"}, children=[
             dcc.Graph(id='graph'),
-            html.Div(id='data-table')
+            
+            dcc.Tabs(id='tabs', value=[], children=[]),
+            html.Div(id='tabs-content')
         ])
     ])
 ])
-
 
 
 
@@ -131,36 +140,103 @@ def run_query(n_clicks, query):
     return "Enter a query and press execute."
 
 
+
 @app.callback(
-    [ddep.Output('data-table', 'children')],
+    ddep.Output('tabs', 'children'),
     [ddep.Input('company-dropdown', 'value')]
 )
-def update_data(company_ids):
+def update_tabs(company_ids):
     if not company_ids:
-        return [html.Div("No companies selected")]
+        return []
+    
+    tabs = []
+    for company_id in company_ids:
+        company_name = companies.loc[companies['id'] == company_id, 'name'].iloc[0]
+        tabs.append(dcc.Tab(label=company_name, value=f'tab-{company_id}'))
 
-    company_ids_str = ', '.join(map(str, company_ids))
+    return tabs
 
+
+@app.callback(
+    ddep.Output('tabs-content', 'children'),
+    [ddep.Input('tabs', 'value')]
+)
+def update_tab_content(selected_tab):
+    if not selected_tab:
+        return html.Div()
+
+    company_id = selected_tab.split('-')[-1]
     query = f"""
-    SELECT date, low, high, open, close, volume, cid
+    SELECT date, low, high, open, close, volume
     FROM daystocks
-    WHERE cid IN ({company_ids_str})
-    ORDER BY cid, date DESC
+    WHERE cid = '{company_id}'
+    ORDER BY date DESC
     """
 
-    table = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
-    table['Company'] = table['cid'].map(companies.set_index('id')['name'])
-    table = table[['Company', 'low', 'high', 'open', 'close', 'volume']]
-    
-    data_table = dash_table.DataTable(
-        columns=[{'name': i, 'id': i} for i in table.columns],
-        data=table.to_dict('records'),
-        style_table={'overflowX': 'auto'}
+    # Fetch data from the database into a Pandas DataFrame
+    df = pd.read_sql_query(query, engine, parse_dates=['date'])
+
+    # Calculate additional statistics
+    df_stats = df.groupby(df['date'].dt.date).agg({
+        'low': 'min',
+        'high': 'max',
+        'open': 'first',
+        'close': 'last',
+        'volume': 'sum'
+    })
+    df_stats['average'] = df.groupby(df['date'].dt.date)['close'].mean()
+    df_stats['std_dev'] = df.groupby(df['date'].dt.date)['close'].std()
+
+    df_stats['Date'] = df_stats.index.map(lambda x: x.strftime('%d/%m/%Y'))
+
+    df_stats = df_stats[['Date', 'low', 'high', 'open', 'close', 'volume', 'average', 'std_dev']]
+
+    # Rename columns
+    df_stats = df_stats.rename(columns={
+        'low': 'Min',
+        'high': 'Max',
+        'open': 'Début',
+        'close': 'Fin',
+        'volume': 'Volume',
+        'average': 'Moyenne',
+        'std_dev': 'Écart type'
+    })
+
+    table = dash_table.DataTable(
+        id={'type': 'dynamic-table', 'index': company_id},
+        columns=[{'name': i, 'id': i} for i in df_stats.columns],
+        data=df_stats.reset_index().to_dict('records'),
+        sort_action='native',
+        sort_mode='single',
+        sort_by=[{'column_id': 'Date', 'direction': 'desc'}], 
+        style_table={'overflowX': 'auto'},
+        style_data={'whiteSpace': 'normal', 'height': 'auto'},
     )
 
-    return [data_table]
+    return table
 
 
+def define_date(start_date, end_date, range):
+    now = dt.datetime.now()
+    if start_date and end_date:
+        return start_date, end_date
+    else:
+        match range:
+            case '1D':
+                start_date = now - relativedelta(days=1)
+            case '5D':
+                start_date = now - relativedelta(days=5)
+            case '1M':
+                start_date = now - relativedelta(months=1)
+            case '3M':
+                start_date = now - relativedelta(months=3)
+            case '1Y':
+                start_date = now - relativedelta(years=1)
+            case '2Y':
+                start_date = now - relativedelta(years=2)
+            case '5Y':
+                start_date = now - relativedelta(years=5)
+        return start_date, now
 
 
 @app.callback(
@@ -170,56 +246,22 @@ def update_data(company_ids):
      ddep.Input('date-picker-range', 'end_date'),
      ddep.Input('graph-type', 'value'),
      ddep.Input('bollinger-bands-checkbox', 'value'),
-     ddep.Input('date-range-button', 'n_clicks')]
+     ddep.Input('date-range-button', 'value'),
+     ddep.Input('avg-checkbox', 'value')]
 )
-def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None, n_clicks=None):
+def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None, date_range=None, avg_option=False):
     if company_id is None:
         return [go.Figure()]
 
-    if n_clicks is not None:
-        ctx = dash.callback_context
-        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
-
-        # Set start_date and end_date based on the clicked button
-        if triggered_id == '1D':
-            start_date = (dt.datetime.now() - dt.timedelta(days=1)).strftime('%Y-%m-%d')
-            end_date = dt.datetime.now().strftime('%Y-%m-%d')
-        elif triggered_id == '5D':
-            start_date = (dt.datetime.now() - dt.timedelta(days=5)).strftime('%Y-%m-%d')
-            end_date = dt.datetime.now().strftime('%Y-%m-%d')
-        elif triggered_id == '1M':
-            start_date = (dt.datetime.now() - relativedelta(months=1)).replace(day=1).strftime('%Y-%m-%d')
-            end_date = dt.datetime.now().strftime('%Y-%m-%d')
-        elif triggered_id == '3M':
-            start_date = (dt.datetime.now() - relativedelta(months=3)).replace(day=1).strftime('%Y-%m-%d')
-            end_date = dt.datetime.now().strftime('%Y-%m-%d')
-        elif triggered_id == '1Y':
-            start_date = (dt.datetime.now() - relativedelta(years=1)).replace(day=1).strftime('%Y-%m-%d')
-            end_date = dt.datetime.now().strftime('%Y-%m-%d')
-        elif triggered_id == '2Y':
-            start_date = (dt.datetime.now() - relativedelta(years=2)).replace(day=1).strftime('%Y-%m-%d')
-            end_date = dt.datetime.now().strftime('%Y-%m-%d')
-        elif triggered_id == '5Y':
-            start_date = (dt.datetime.now() - relativedelta(years=5)).replace(day=1).strftime('%Y-%m-%d')
-            end_date = dt.datetime.now().strftime('%Y-%m-%d')
-    else:
-        start_date = start_date.split('T')[0]
-        end_date = end_date.split('T')[0]
-
-        start_date = dt.datetime.strptime(start_date, '%Y-%m-%d')
-        end_date = dt.datetime.strptime(end_date, '%Y-%m-%d')
-
-        start_date = start_date.strftime('%Y-%m-%d')
-        end_date = end_date.strftime('%Y-%m-%d')
+    start_date, end_date = define_date(start_date, end_date, date_range)
 
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02)
-
 
     #DAYSTOCKS PART
     if graph_type == 'candlestick':
         for company in company_id:
             query = f"""
-            SELECT date, open, high, low, close
+            SELECT date, open, high, low, close, volume
             FROM daystocks
             WHERE cid = {company} AND date >= '{start_date}' AND date <= '{end_date}'
             ORDER BY date
@@ -294,8 +336,8 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             """
 
             df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
-
-            avg = df_stock['value'].mean()
+            if avg_option:
+                avg = df_stock['value'].mean()
             company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
     
             fig.add_trace(go.Scatter(x=df_stock.index, y=df_stock['value'], mode='lines', name=f'{company_name}'), row=1, col=1)
@@ -332,14 +374,16 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                     row=1, col=1)
 
         # Add average line to the plot
-        fig.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Overall Average: {avg:.2f}',
+        if avg_option:
+            fig.add_hline(y=avg, line_dash="dot", line_color="red", annotation_text=f'Overall Average: {avg:.2f}',
                             annotation_position="bottom right", row=1, col=1)
 
         # Update layout
         fig.update_layout(title='Stock Prices Comparison',
                                 xaxis_title='Date',
                                 yaxis_title='Stock Price',
-                                xaxis_rangeslider_visible=False)
+                                xaxis_rangeslider_visible=False,
+                                xaxis=dict(type="category"))
     
     return [fig]
 
