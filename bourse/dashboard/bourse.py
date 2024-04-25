@@ -152,7 +152,8 @@ def update_tabs(company_ids):
     tabs = []
     for company_id in company_ids:
         company_name = companies.loc[companies['id'] == company_id, 'name'].iloc[0]
-        tabs.append(dcc.Tab(label=company_name, value=f'tab-{company_id}'))
+        company_symbol = companies.loc[companies['id'] == company_id, 'symbol'].iloc[0]
+        tabs.append(dcc.Tab(label=f"{company_name} - {company_symbol}", value=f'tab-{company_id}'))
 
     return tabs
 

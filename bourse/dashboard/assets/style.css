@@ -670,7 +670,7 @@ there.
 /* Overall container style */
 .app-container {
   padding: 20px;
-  background-color: #242d7c;
+  background-color: #ffffff;
 }
 
 /* Dashboard header style */
@@ -683,8 +683,8 @@ there.
 
 /* Styling for individual components */
 .component {
-  background-color: #263088;
-  border: 1px solid #ba9a0c;
+  background-color: #ffffff;
+  border: 1px solid #242d7c;
   border-radius: 5px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
