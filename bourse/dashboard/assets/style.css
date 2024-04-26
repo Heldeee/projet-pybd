@@ -248,6 +248,7 @@ h1 {
   line-height: 1.2;
   letter-spacing: -.1rem;
   margin-bottom: 2rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 h2 {
@@ -624,6 +625,8 @@ there.
 /* Styling for Execute button */
 #execute-query {
   margin-bottom: 20px;
+  background-color: #007bff;
+  color: white;
 }
 
 /* Styling for Query result */
@@ -679,6 +682,11 @@ there.
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 30px;
+  color: #007bff;
+
+  background-image: url('background.jpg');
+  background-size: cover;
+  background-position: center;
 }
 
 /* Styling for individual components */
