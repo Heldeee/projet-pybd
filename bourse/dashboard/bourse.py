@@ -253,8 +253,7 @@ def export_csv(n_clicks, selected_tab):
         
         csv_string = df_stats.to_csv(index=False, encoding='utf-8-sig')
         
-        return dict(content=csv_string, filename='company_{company_id}_data.csv')
-
+        return dict(content=csv_string, filename=f"company_{company_id}_data.csv")
 
 def get_dataframe_for_tab(company_id):
     query = f"""
