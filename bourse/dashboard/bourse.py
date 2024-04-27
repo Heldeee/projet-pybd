@@ -116,11 +116,11 @@ app.layout = html.Div([
                 dcc.Tab(label='5Y', value='5Y')
             ]),
         ]),
-
         # Graph et tableau de données
         html.Div(className="component", style={"flex": "1", "margin-top": "20px"}, children=[
             dcc.Graph(id='graph'),
             
+            html.Div(className="dashboard-header", children="Data Table"),
             dcc.Tabs(id='tabs', value=[], children=[]),
             html.Div(id='tabs-content')
         ])
@@ -284,6 +284,13 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             """
             df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
             company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
+            avg = df_stock['close'].mean()
+            if avg_option:
+                fig.add_trace(go.Scatter(x=df_stock.index,
+                                     y=np.full(df_stock.shape[0], avg),
+                                     mode='lines',
+                                     name=f'{company_name} - Average',
+                                     line=dict(color='red', width=1, dash='dash')))
             fig.add_trace(go.Candlestick(x=df_stock.index,
                                         open=df_stock['open'],
                                         high=df_stock['high'],
@@ -339,7 +346,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
 
             df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
             company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
-
+            avg = df_stock['value'].mean()
             fig.add_trace(go.Scatter(x=df_stock.index,
                                  y=df_stock['value'],
                                  mode='lines',
@@ -368,6 +375,13 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                          mode='lines',
                                          line=dict(color='green', width=1),
                                          name=f'{company_name} - Lower Bollinger Band'))
+                
+            if avg_option:
+                fig.add_trace(go.Scatter(x=df_stock.index,
+                                     y=np.full(df_stock.shape[0], avg),
+                                     mode='lines',
+                                     name=f'{company_name} - Average',
+                                     line=dict(color='red', width=1, dash='dash')))
 
 
     if log_scale:  # Apply log scale if selected
