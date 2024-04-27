@@ -45,7 +45,9 @@ app.layout = html.Div([
                     style={'width': '100%', 'height': 100},
                 ),
                 html.Button('Execute', id='execute-query', n_clicks=0),
-                html.Div(id='query-result')
+                html.Div(id='query-result'),
+
+                html.Div(id='export-csv')
             ])
         ]),
         
@@ -122,11 +124,16 @@ app.layout = html.Div([
             
             html.Div(className="dashboard-header", children="Data Table"),
             dcc.Tabs(id='tabs', value=[], children=[]),
-            html.Div(id='tabs-content')
-        ])
+            html.Div(id='tabs-content'),
+        ]),
+
+        # Bouton Export CSV
+        html.Button('Export CSV', id='export-button', n_clicks=0),
+        
+        # Composante Download pour le téléchargement du CSV
+        dcc.Download(id='download-csv')
     ])
 ])
-
 
 
 @app.callback( ddep.Output('query-result', 'children'),
@@ -229,7 +236,55 @@ def update_tab_content(selected_tab):
         style_data={'whiteSpace': 'normal', 'height': 'auto'},
     )
 
-    return table
+    # return table
+    return html.Div([table], id=f'table-{company_id}')
+
+
+@app.callback(
+    ddep.Output('download-csv', 'data'),
+    [ddep.Input('export-button', 'n_clicks')],
+    [ddep.State('tabs', 'value')]
+)
+def export_csv(n_clicks, selected_tab):
+    if n_clicks and selected_tab:
+        # Obtenir le DataFrame correspondant à l'onglet sélectionné
+        company_id = selected_tab.split('-')[-1]
+        df_stats = get_dataframe_for_tab(company_id)
+        
+        csv_string = df_stats.to_csv(index=False, encoding='utf-8-sig')
+        
+        return dict(content=csv_string, filename='company_{company_id}_data.csv')
+
+
+def get_dataframe_for_tab(company_id):
+    query = f"""
+    SELECT date, low, high, open, close, volume
+    FROM daystocks
+    WHERE cid = '{company_id}'
+    ORDER BY date ASC
+    """
+    df = pd.read_sql_query(query, engine, parse_dates=['date'])
+    df_stats = df.groupby(df['date'].dt.date).agg({
+        'low': 'min',
+        'high': 'max',
+        'open': 'first',
+        'close': 'last',
+        'volume': 'sum'
+    })
+    df_stats['average'] = df.groupby(df['date'].dt.date)['close'].mean().round(2)
+    df_stats['std_dev'] = df.groupby(df['date'].dt.date)['close'].std().round(2)
+    df_stats['Date'] = df_stats.index.map(lambda x: x.strftime('%d/%m/%Y'))
+    df_stats = df_stats[['Date' ,'low', 'high', 'open', 'close', 'volume', 'average', 'std_dev']]
+    df_stats = df_stats.rename(columns={
+        'low': 'Min',
+        'high': 'Max',
+        'open': 'Début',
+        'close': 'Fin',
+        'volume': 'Volume',
+        'average': 'Moyenne',
+        'std_dev': 'Écart type'
+    })
+    return df_stats
 
 
 def define_date(start_date, end_date, range):
