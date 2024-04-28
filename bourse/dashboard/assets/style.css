@@ -635,11 +635,6 @@ there.
 }
 
 /* Styling for Company dropdown */
-#company-dropdown {
-  width: 100%;
-  margin-bottom: 20px;
-  color: #242d7c;
-}
 
 /* Styling for Graph type radio items */
 #graph-type {
@@ -674,6 +669,7 @@ there.
 .app-container {
   padding: 20px;
   background-color: #ffffff;
+  background-color: #303030;
 }
 
 /* Dashboard header style */
@@ -682,7 +678,7 @@ there.
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 30px;
-  color: #007bff;
+  color: #ffffff;
 
   background-size: cover;
   background-position: center;
@@ -690,15 +686,24 @@ there.
 
 /* Styling for individual components */
 .component {
-  background-color: #ffffff;
-  border: 1px solid #242d7c;
+  background-color: #303030;
+  border: 1px solid #b2b2b2;
   border-radius: 5px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #ffffff;
+  display: flex;
 }
 
 .tabs-content {
   width: 100%;
   border-collapse: collapse;
   color: #263088;
+}
+
+#company-dropdown {
+  width: 100%;
+  margin-bottom: 20px;
+  color: #242d7c;
+  background-color: #303030;
 }

@@ -31,36 +31,20 @@ app.layout = html.Div([
     html.Div(className="app-container", children=[
         html.Div(className="dashboard-header", children="Market Dashboard"),
         
-        # Premier composant repliable avec la requête SQL
-        html.Div(className="component", children=[
-            html.Details(open=False, children=[
-                html.Summary("SQL Query"),
-                dcc.Textarea(
-                    id='sql-query',
-                    value='''
-                        SELECT * FROM pg_catalog.pg_tables
-                            WHERE schemaname != 'pg_catalog' AND 
-                                  schemaname != 'information_schema';
-                    ''',
-                    style={'width': '100%', 'height': 100},
-                ),
-                html.Button('Execute', id='execute-query', n_clicks=0),
-                html.Div(id='query-result'),
-
-                html.Div(id='export-csv')
-            ])
-        ]),
-        
         # Autres composants sur la même ligne
-        html.Div(className="component", style={"flex": "1", "margin-left": "20px"}, children=[
+        html.Div(className="component", children=[
             dcc.Dropdown(id='company-dropdown',
                 multi=True,
                 options=companies_options,
                 placeholder='Select one or more companies'
             ),
         ]),
+        # Graph et tableau de données
+        html.Div(className="component", style={"flex": "1", "margin-top": "20px"}, children=[
+            dcc.Graph(id='graph'),
+        ]),
         
-        html.Div(className="component", style={"flex": "1", "margin-left": "20px"}, children=[
+        html.Div(className="component", children=[
             dcc.DatePickerRange(
                 id='date-picker-range',
                 min_date_allowed=dt.datetime(2019, 1, 1),
@@ -69,9 +53,18 @@ app.layout = html.Div([
                 start_date=dt.datetime(2019, 1, 1),
                 end_date=dt.datetime.now()
             ),
+            dcc.Tabs(id='date-range-button', value=[], children=[
+                dcc.Tab(label='1D', value='1D'),
+                dcc.Tab(label='5D', value='5D'),
+                dcc.Tab(label='1M', value='1M'),
+                dcc.Tab(label='3M', value='3M'),
+                dcc.Tab(label='1Y', value='1Y'),
+                dcc.Tab(label='2Y', value='2Y'),
+                dcc.Tab(label='5Y', value='5Y')
+            ]),
         ]),
         
-        html.Div(className="component", style={"flex": "1", "margin-left": "20px"}, children=[
+        html.Div(className="component", children=[
             dcc.RadioItems(
                 id='graph-type',
                 options=[
@@ -107,21 +100,7 @@ app.layout = html.Div([
             ),
         ]),
         
-        html.Div(className="component", style={"flex": "1", "margin-left": "20px"}, children=[
-            dcc.Tabs(id='date-range-button', value=[], children=[
-                dcc.Tab(label='1D', value='1D'),
-                dcc.Tab(label='5D', value='5D'),
-                dcc.Tab(label='1M', value='1M'),
-                dcc.Tab(label='3M', value='3M'),
-                dcc.Tab(label='1Y', value='1Y'),
-                dcc.Tab(label='2Y', value='2Y'),
-                dcc.Tab(label='5Y', value='5Y')
-            ]),
-        ]),
-        # Graph et tableau de données
-        html.Div(className="component", style={"flex": "1", "margin-top": "20px"}, children=[
-            dcc.Graph(id='graph'),
-            
+        html.Div(className="component", children=[
             html.Div(className="dashboard-header", children="Data Table"),
             dcc.Tabs(id='tabs', value=[], children=[]),
             html.Div(id='tabs-content'),
@@ -234,6 +213,7 @@ def update_tab_content(selected_tab):
         sort_mode='single',
         style_table={'overflowX': 'auto'},
         style_data={'whiteSpace': 'normal', 'height': 'auto'},
+        page_size=10,
     )
 
     # return table
@@ -249,11 +229,12 @@ def export_csv(n_clicks, selected_tab):
     if n_clicks and selected_tab:
         # Obtenir le DataFrame correspondant à l'onglet sélectionné
         company_id = selected_tab.split('-')[-1]
+        company_symbol = companies.loc[companies['id'] == int(company_id), 'symbol'].iloc[0]
         df_stats = get_dataframe_for_tab(company_id)
         
         csv_string = df_stats.to_csv(index=False, encoding='utf-8-sig')
         
-        return dict(content=csv_string, filename=f"company_{company_id}_data.csv")
+        return dict(content=csv_string, filename=f"{company_symbol}_data.csv")
 
 def get_dataframe_for_tab(company_id):
     query = f"""
