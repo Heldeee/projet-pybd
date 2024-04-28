@@ -226,7 +226,8 @@ def update_tab_content(selected_tab):
             'textAlign': 'right',
             'padding': '5px',
             'color': 'white',
-            'border': '1px solid rgb(48, 48, 48)'
+            'border': '1px solid rgb(48, 48, 48)',
+            'backgroundColor': '#303030'
         },
         style_data={
             'color': 'white',
@@ -309,9 +310,22 @@ def get_dataframe_for_tab(company_id):
 )
 def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None, date_range=None, avg_option=False, log_scale=False):  # Updated function signature
     if company_id is None:
-        return [go.Figure()]
+        fig = go.Figure(layout=go.Layout(
+            plot_bgcolor='#303030',
+            paper_bgcolor='#303030',
+            font=dict(color='white'),
+            legend=dict(font=dict(color='white')),
+        ))
+        return [fig]
 
-    fig = go.Figure()
+    fig = go.Figure(
+        layout=go.Layout(
+            plot_bgcolor='#303030',
+            paper_bgcolor='#303030',
+            font=dict(color='white'),
+            legend=dict(font=dict(color='white')),
+        )
+    )
     
     if graph_type == 'candlestick':
         for company in company_id:
@@ -329,15 +343,15 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                      y=np.full(df_stock.shape[0], avg),
                                      mode='lines',
                                      name=f'{company_name} - Average',
-                                     line=dict(color='red', width=1, dash='dash')))
+                                     line=dict(color='orange', width=1, dash='dash')))
             fig.add_trace(go.Candlestick(x=df_stock.index,
                                         open=df_stock['open'],
                                         high=df_stock['high'],
                                         low=df_stock['low'],
                                         close=df_stock['close'],
                                         name=f'{company_name}',
-                                        increasing_line_color='green',
-                                        decreasing_line_color='red',
+                                        increasing_line_color='lightgreen',
+                                        decreasing_line_color='orange',
                                         whiskerwidth=0.2,
                                         opacity=0.8,
                                         hoverinfo='x+y+z',
@@ -355,13 +369,13 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                 fig.add_trace(go.Scatter(x=df_stock.index,
                                          y=df_stock['20_MA'] + 2 * df_stock['20_std'],
                                          mode='lines',
-                                         line=dict(color='green', width=1),
+                                         line=dict(color='lightgreen', width=1),
                                          name='Upper Bollinger Band'))
 
                 fig.add_trace(go.Scatter(x=df_stock.index,
                                          y=df_stock['20_MA'] - 2 * df_stock['20_std'],
                                          mode='lines',
-                                         line=dict(color='green', width=1),
+                                         line=dict(color='lightgreen', width=1),
                                          name='Lower Bollinger Band'))
 
                 fig.add_vrect(x0=df_stock.index[0], x1=df_stock.index[-1],
@@ -389,6 +403,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             fig.add_trace(go.Scatter(x=df_stock.index,
                                  y=df_stock['value'],
                                  mode='lines',
+                                 line=dict(color='lightblue', width=1),
                                  name=f'{company_name}',
                                  hovertemplate='<b>Date</b>: %{x|%Y-%m-%d}<br>' +
                                                   '<b>Price</b>: %{y:.2f}<extra></extra>'
@@ -406,13 +421,13 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                 fig.add_trace(go.Scatter(x=df_stock.index,
                                          y=df_stock['20_MA'] + 2 * df_stock['20_std'],
                                          mode='lines',
-                                         line=dict(color='green', width=1),
+                                         line=dict(color='lightgreen', width=1),
                                          name=f'{company_name} - Upper Bollinger Band'))
 
                 fig.add_trace(go.Scatter(x=df_stock.index,
                                          y=df_stock['20_MA'] - 2 * df_stock['20_std'],
                                          mode='lines',
-                                         line=dict(color='green', width=1),
+                                         line=dict(color='lightgreen', width=1),
                                          name=f'{company_name} - Lower Bollinger Band'))
                 
             if avg_option:
@@ -420,7 +435,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                      y=np.full(df_stock.shape[0], avg),
                                      mode='lines',
                                      name=f'{company_name} - Average',
-                                     line=dict(color='red', width=1, dash='dash')))
+                                     line=dict(color='orange', width=1, dash='dash')))
 
 
     if log_scale:  # Apply log scale if selected
@@ -429,7 +444,9 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
     fig.update_layout(title='Stock Prices Comparison',
                     yaxis_title='Stock Price',
                     xaxis_rangeslider_visible=False,
-                    grid=dict(rows=1, columns=1, pattern='independent'))
+                    grid=dict(rows=1, columns=1, pattern='independent'),
+                    font=dict(color='white')
+    )
 
 
     return [fig]
