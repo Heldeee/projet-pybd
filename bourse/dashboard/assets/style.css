@@ -227,6 +227,7 @@ body {
   font-weight: 400;
   font-family: "Open Sans", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
   color: rgb(50, 50, 50);
+  background-color: rgb(50, 50, 50);
 }
 
 
@@ -701,9 +702,64 @@ there.
   color: #263088;
 }
 
+#tabs-parent {
+  background-color: #303030;
+}
+
 #company-dropdown {
   width: 100%;
   margin-bottom: 20px;
   color: #242d7c;
   background-color: #303030;
+}
+
+.export-button {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+#export-button {
+  flex: 1;
+  background-color: #0056b3;
+  color: #ffffff;
+  width: 30%;
+}
+
+#export-button:hover {
+  background-color: #007bff;
+}
+
+.previous-next-container {
+  color: #ffffff;
+}
+
+.Select-control {
+  background-color: #303030;
+  border: 1px solid #b2b2b2;
+  border-radius: 5px;
+  color: #ffffff;
+}
+
+.Select-control:focus {
+  border: 1px solid #b2b2b2;
+  background-color: #303030;
+}
+
+#date-range-button {
+  background-color: #303030;
+  color: #ffffff;
+}
+
+#date-range-button:hover {
+  background-color: #007bff;
+}
+
+#date-range-button:focus {
+  background-color: #007bff;
+}
+
+.current-page {
+  color: #ffffff !important;
+  background-color: #303030 !important;
 }

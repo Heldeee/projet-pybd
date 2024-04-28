@@ -53,15 +53,9 @@ app.layout = html.Div([
                 start_date=dt.datetime(2019, 1, 1),
                 end_date=dt.datetime.now()
             ),
-            dcc.Tabs(id='date-range-button', value=[], children=[
-                dcc.Tab(label='1D', value='1D'),
-                dcc.Tab(label='5D', value='5D'),
-                dcc.Tab(label='1M', value='1M'),
-                dcc.Tab(label='3M', value='3M'),
-                dcc.Tab(label='1Y', value='1Y'),
-                dcc.Tab(label='2Y', value='2Y'),
-                dcc.Tab(label='5Y', value='5Y')
-            ]),
+            html.Div(id='hover-data')
+
+
         ]),
         
         html.Div(className="component", children=[
@@ -100,19 +94,34 @@ app.layout = html.Div([
             ),
         ]),
         
-        html.Div(className="component", children=[
+        html.Div(className="dash-table", children=[
             html.Div(className="dashboard-header", children="Data Table"),
             dcc.Tabs(id='tabs', value=[], children=[]),
             html.Div(id='tabs-content'),
         ]),
 
         # Bouton Export CSV
-        html.Button('Export CSV', id='export-button', n_clicks=0),
+        html.Div(className="export-button", children=[
+            html.Button('Export CSV', id='export-button', n_clicks=0)
+        ]),
         
         # Composante Download pour le téléchargement du CSV
         dcc.Download(id='download-csv')
     ])
 ])
+
+@app.callback(
+    ddep.Output('hover-data', 'children'),
+    [ddep.Input('graph', 'hoverData')])
+def display_hover_data(hoverData):
+    if hoverData is not None:
+        return dash_table.DataTable(
+            data=[{'x': hoverData['points'][0]['x'], 'y': hoverData['points'][0]['y']}],
+            columns=[{'name': 'Date', 'id': 'x'}, {'name': 'Price', 'id': 'y'}],
+            style_table={'height': '100px', 'overflowY': 'auto', 'color': 'rgb(48, 48, 48)', 'backgroundColor': 'rgb(119, 118, 123)'}
+        )
+    else:
+        return dash_table.DataTable()
 
 
 @app.callback( ddep.Output('query-result', 'children'),
@@ -200,9 +209,10 @@ def update_tab_content(selected_tab):
     {
         'selector': f'th[data-dash-column="{col}"] span.column-header--sort',
         'rule': 'display: none',
+
     }
     for col in non_sortable
-]
+    ]
 
     table = dash_table.DataTable(
         id={'type': 'dynamic-table', 'index': company_id},
@@ -211,9 +221,29 @@ def update_tab_content(selected_tab):
         css=table_css,
         sort_action='native',
         sort_mode='single',
-        style_table={'overflowX': 'auto'},
-        style_data={'whiteSpace': 'normal', 'height': 'auto'},
         page_size=10,
+        style_cell={
+            'textAlign': 'right',
+            'padding': '5px',
+            'color': 'white',
+            'border': '1px solid rgb(48, 48, 48)'
+        },
+        style_data={
+            'color': 'white',
+            'backgroundColor': 'rgb(119, 118, 123)'
+        },
+        style_data_conditional=[
+        {
+            'if': {'row_index': 'odd'},
+            'backgroundColor': 'rgb(48, 48, 48)',
+            'color': 'white'
+        }
+        ],
+        style_header={
+            'backgroundColor': 'rgb(48, 48, 48)',
+            'color': 'white',
+            'fontWeight': 'bold'
+        }
     )
 
     # return table
@@ -267,29 +297,6 @@ def get_dataframe_for_tab(company_id):
     return df_stats
 
 
-def define_date(start_date, end_date, range):
-    now = dt.datetime.now()
-    if start_date and end_date:
-        return start_date, end_date
-    else:
-        match range:
-            case '1D':
-                start_date = now - relativedelta(days=1)
-            case '5D':
-                start_date = now - relativedelta(days=5)
-            case '1M':
-                start_date = now - relativedelta(months=1)
-            case '3M':
-                start_date = now - relativedelta(months=3)
-            case '1Y':
-                start_date = now - relativedelta(years=1)
-            case '2Y':
-                start_date = now - relativedelta(years=2)
-            case '5Y':
-                start_date = now - relativedelta(years=5)
-        return start_date, now
-
-
 @app.callback(
     [ddep.Output('graph', 'figure')],
     [ddep.Input('company-dropdown', 'value'),
@@ -297,15 +304,12 @@ def define_date(start_date, end_date, range):
      ddep.Input('date-picker-range', 'end_date'),
      ddep.Input('graph-type', 'value'),
      ddep.Input('bollinger-bands-checkbox', 'value'),
-     ddep.Input('date-range-button', 'value'),
      ddep.Input('avg-checkbox', 'value'),
      ddep.Input('log-scale-checkbox', 'value')]  # New input for log scale option
 )
 def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None, date_range=None, avg_option=False, log_scale=False):  # Updated function signature
     if company_id is None:
         return [go.Figure()]
-
-    start_date, end_date = define_date(start_date, end_date, date_range)
 
     fig = go.Figure()
     
