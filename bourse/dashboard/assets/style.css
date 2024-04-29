@@ -636,6 +636,9 @@ there.
 }
 
 /* Styling for Company dropdown */
+.Select-menu {
+  background-color: #303030 !important;
+}
 
 /* Styling for Graph type radio items */
 #graph-type {
@@ -691,6 +694,45 @@ there.
   color: #ffffff !important;
 }
 
+/* Styling for date picker calendar */
+.DayPicker {
+  background-color: #303030 !important;
+  color: #ffffff !important;
+}
+
+.DayPicker-Month {
+  background-color: #303030 !important;
+}
+
+.DayPicker-Weekday {
+  color: #ffffff !important;
+}
+
+.DayPicker-WeekNumber {
+  color: #ffffff !important;
+}
+
+.DayPicker-Day {
+  color: #ffffff !important;
+}
+
+.DayPicker-Day--selected:not(.DayPicker-Day--outside) {
+  background-color: #007bff !important;
+}
+
+.DayPicker-Day--selected:not(.DayPicker-Day--outside):hover {
+  background-color: #0056b3 !important;
+}
+
+.DayPicker-Day--today {
+  color: #007bff !important;
+}
+
+.DayPicker-Caption {
+  color: #ffffff !important;
+}
+
+
 /* Styling for individual components */
 .component {
   background-color: #303030;
@@ -715,8 +757,8 @@ there.
 #company-dropdown {
   width: 100%;
   margin-bottom: 20px;
-  color: #242d7c;
-  background-color: #303030;
+  color: lightgray;
+  background-color: #303030 !important;
 }
 
 .export-button {
@@ -750,6 +792,15 @@ there.
 .Select-control:focus {
   border: 1px solid #b2b2b2;
   background-color: #303030;
+}
+
+.Select-value {
+  color: #ffffff !important;
+}
+
+.Select-arrow-zone {
+  background-color: #303030 !important;
+  color: grey !important;
 }
 
 #date-range-button {
