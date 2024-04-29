@@ -226,7 +226,7 @@ body {
   line-height: 1.6;
   font-weight: 400;
   font-family: "Open Sans", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  color: rgb(50, 50, 50);
+  color: white;
   background-color: rgb(50, 50, 50);
 }
 
@@ -798,6 +798,7 @@ there.
   display: flex;
 }
 
+
 .tabs-content {
   width: 100%;
   border-collapse: collapse;
@@ -805,7 +806,12 @@ there.
 }
 
 #tabs-parent {
-  background-color: #303030;
+  background-color: #303030 !important;
+}
+
+#tabs>div {
+  color: #ffffff;
+  background-color: #505050 !important;
 }
 
 #company-dropdown {
@@ -823,7 +829,7 @@ there.
 
 #export-button {
   flex: 1;
-  background-color: #0056b3;
+  background-color: grey;
   color: #ffffff;
   width: 30%;
 }
