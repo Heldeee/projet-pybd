@@ -640,6 +640,11 @@ there.
   background-color: #303030 !important;
 }
 
+/* Styling for Company dropdown input field  */
+.Select-input>input {
+  color: lightgray;
+}
+
 /* Styling for Graph type radio items */
 #graph-type {
   margin-bottom: 20px;
@@ -688,10 +693,25 @@ there.
   background-position: center;
 }
 
-/* Styling for date input */
+/* Styling for date range picker */
+.DateRangePickerInput {
+  background-color: #303030;
+  color: lightgray;
+}
+
+.DateInput {
+  background-color: #303030;
+  color: lightgray;
+}
+
 .DateInput_input {
   background-color: #303030 !important;
-  color: #ffffff !important;
+  color: lightgray !important;
+}
+
+.DateRangePickerInput_arrow_svg {
+  background-color: #303030;
+  color: #ffffff;
 }
 
 /* Styling for date picker calendar */
@@ -700,7 +720,41 @@ there.
   color: #ffffff !important;
 }
 
-.DayPicker-Month {
+.CalendarMonthGrid {
+  background-color: #303030 !important;
+}
+
+.CalendarMonth {
+  background-color: #303030 !important;
+}
+
+.CalendarDay {
+  background-color: #303030 !important;
+}
+
+.CalendarMonth_caption {
+  background-color: #303030 !important;
+  color: lightgray !important;
+}
+
+.CalendarDay:hover {
+  background-color: darkgrey !important;
+}
+
+.CalendarDay__selected {
+  background-color: lightgray !important;
+}
+
+.CalendarDay__selected_span {
+  background-color: darkslategray !important;
+}
+
+.DayPicker_weekHeader {
+  background-color: #303030 !important;
+  color: lightgray !important;
+}
+
+.DayPickerNavigation_button__default {
   background-color: #303030 !important;
 }
 
@@ -783,10 +837,10 @@ there.
 }
 
 .Select-control {
-  background-color: #303030;
+  background-color: #303030 !important;
   border: 1px solid #b2b2b2;
   border-radius: 5px;
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 .Select-control:focus {
@@ -795,13 +849,15 @@ there.
 }
 
 .Select-value {
-  color: #ffffff !important;
+  color: white !important;
+  background-color: gray !important;
 }
 
 .Select-arrow-zone {
   background-color: #303030 !important;
   color: grey !important;
 }
+
 
 #date-range-button {
   background-color: #303030;

@@ -37,7 +37,6 @@ app.layout = html.Div([
                 multi=True,
                 options=companies_options,
                 placeholder='Select one or more companies',
-                style={'backgroundColor': '#303030'},
             ),
         ]),
         # Graph et tableau de données
