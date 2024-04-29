@@ -685,6 +685,12 @@ there.
   background-position: center;
 }
 
+/* Styling for date input */
+.DateInput_input {
+  background-color: #303030 !important;
+  color: #ffffff !important;
+}
+
 /* Styling for individual components */
 .component {
   background-color: #303030;

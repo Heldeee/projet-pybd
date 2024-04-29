@@ -36,7 +36,8 @@ app.layout = html.Div([
             dcc.Dropdown(id='company-dropdown',
                 multi=True,
                 options=companies_options,
-                placeholder='Select one or more companies'
+                placeholder='Select one or more companies',
+                style={'backgroundColor': '#303030'},
             ),
         ]),
         # Graph et tableau de données
@@ -51,11 +52,10 @@ app.layout = html.Div([
                 max_date_allowed=dt.datetime.now(),
                 initial_visible_month=dt.datetime.now(),
                 start_date=dt.datetime(2019, 1, 1),
-                end_date=dt.datetime.now()
+                end_date=dt.datetime.now(),
+                className='DateInput_input',
             ),
             html.Div(id='hover-data')
-
-
         ]),
         
         html.Div(className="component", children=[
