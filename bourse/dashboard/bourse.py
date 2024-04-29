@@ -29,7 +29,13 @@ app.layout = html.Div([
         href='/assets/styles.css'
     ),
     html.Div(className="app-container", children=[
-        html.Div(className="dashboard-header", children="Market Dashboard"),
+        dcc.Markdown('''
+        # Markets Dashboard
+        ### Python Big Data Project for EPITA
+                     
+        This dashboard allows you to visualize stock prices for different companies.
+        You can select one or more companies from the dropdown, and the dashboard will display the stock prices.
+        '''),
         
         # Autres composants sur la même ligne
         html.Div(className="component", children=[
@@ -45,6 +51,7 @@ app.layout = html.Div([
         ]),
         
         html.Div(className="component", children=[
+            html.Div(className="grid-container", children=[
             dcc.DatePickerRange(
                 id='date-picker-range',
                 min_date_allowed=dt.datetime(2019, 1, 1),
@@ -54,12 +61,9 @@ app.layout = html.Div([
                 end_date=dt.datetime.now(),
                 className='DateInput_input',
             ),
-            html.Div(id='hover-data')
-        ]),
-        
-        html.Div(className="component", children=[
             dcc.RadioItems(
                 id='graph-type',
+                className='check-box',
                 options=[
                     {'label': 'Line', 'value': 'line'},
                     {'label': 'Candlestick', 'value': 'candlestick'}
@@ -69,6 +73,7 @@ app.layout = html.Div([
             ),
             dcc.Checklist(
                 id='bollinger-bands-checkbox',
+                className='check-box',
                 options=[
                     {'label': 'Bollinger bands', 'value': 'show_bollinger'}
                 ],
@@ -77,6 +82,7 @@ app.layout = html.Div([
             ),
             dcc.Checklist(
                 id='avg-checkbox',
+                className='check-box',
                 options=[
                     {'label': 'Average', 'value': 'show_avg'}
                 ],
@@ -85,16 +91,21 @@ app.layout = html.Div([
             ),
             dcc.Checklist(
                 id='log-scale-checkbox',
+                className='check-box',
                 options=[
                     {'label': 'Log scale', 'value': 'log_scale'}
                 ],
                 value=[],
                 labelStyle={'display': 'block'}
             ),
+            ]),
         ]),
         
         html.Div(className="dash-table", children=[
-            html.Div(className="dashboard-header", children="Data Table"),
+            dcc.Markdown('''
+                         ## Data Table
+                         Selected companies appears in tabs below. Click on a tab to see the data table.
+                            '''),
             dcc.Tabs(id='tabs', value=[], children=[]),
             html.Div(id='tabs-content'),
         ]),
@@ -105,23 +116,12 @@ app.layout = html.Div([
         ]),
         
         # Composante Download pour le téléchargement du CSV
-        dcc.Download(id='download-csv')
+        dcc.Download(id='download-csv'),
+        dcc.Markdown('''
+                     2024 - leo.devin - phu-hung.dang - alexandre1.huynh
+                        '''),
     ])
 ])
-
-@app.callback(
-    ddep.Output('hover-data', 'children'),
-    [ddep.Input('graph', 'hoverData')])
-def display_hover_data(hoverData):
-    if hoverData is not None:
-        return dash_table.DataTable(
-            data=[{'x': hoverData['points'][0]['x'], 'y': hoverData['points'][0]['y']}],
-            columns=[{'name': 'Date', 'id': 'x'}, {'name': 'Price', 'id': 'y'}],
-            style_table={'height': '100px', 'overflowY': 'auto', 'color': 'rgb(48, 48, 48)', 'backgroundColor': 'rgb(119, 118, 123)'}
-        )
-    else:
-        return dash_table.DataTable()
-
 
 @app.callback( ddep.Output('query-result', 'children'),
                ddep.Input('execute-query', 'n_clicks'),
@@ -307,7 +307,7 @@ def get_dataframe_for_tab(company_id):
      ddep.Input('avg-checkbox', 'value'),
      ddep.Input('log-scale-checkbox', 'value')]  # New input for log scale option
 )
-def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None, date_range=None, avg_option=False, log_scale=False):  # Updated function signature
+def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None, avg_option=False, log_scale=False):  # Updated function signature
     if company_id is None:
         fig = go.Figure(layout=go.Layout(
             plot_bgcolor='#303030',
@@ -353,8 +353,9 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                         decreasing_line_color='orange',
                                         whiskerwidth=0.2,
                                         opacity=0.8,
-                                        hoverinfo='x+y+z',
-                                        showlegend=True))
+                                        hovertemplate='<b>Date</b>: %{x|%Y-%m-%d}<br>' +
+                                                  '<b>Price</b>: %{y:.2f}<extra></extra><br>' +
+                                                  f'<b>Company</b>: {company_name} - {company_symbol}'))
 
             if 'show_bollinger' in bollinger_bands:
                 df_stock['20_MA'] = df_stock['close'].rolling(window=20).mean()
@@ -398,14 +399,22 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
 
             df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
             company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
+            company_symbol = companies.loc[companies['id'] == company, 'symbol'].iloc[0]
             avg = df_stock['value'].mean()
+            if avg_option:
+                fig.add_trace(go.Scatter(x=df_stock.index,
+                                     y=np.full(df_stock.shape[0], avg),
+                                     mode='lines',
+                                     name=f'{company_name} - Average',
+                                     line=dict(color='orange', width=1, dash='dash')))
             fig.add_trace(go.Scatter(x=df_stock.index,
                                  y=df_stock['value'],
                                  mode='lines',
                                  line=dict(color='lightblue', width=1),
-                                 name=f'{company_name}',
+                                 name=f'{company_name} - {company_symbol}',
                                  hovertemplate='<b>Date</b>: %{x|%Y-%m-%d}<br>' +
-                                                  '<b>Price</b>: %{y:.2f}<extra></extra>'
+                                                  '<b>Price</b>: %{y:.2f}<extra></extra><br>' +
+                                                  f'<b>Company</b>: {company_name} - {company_symbol}'
                                  ))
 
             if 'show_bollinger' in bollinger_bands:
@@ -428,13 +437,6 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                          mode='lines',
                                          line=dict(color='lightgreen', width=1),
                                          name=f'{company_name} - Lower Bollinger Band'))
-                
-            if avg_option:
-                fig.add_trace(go.Scatter(x=df_stock.index,
-                                     y=np.full(df_stock.shape[0], avg),
-                                     mode='lines',
-                                     name=f'{company_name} - Average',
-                                     line=dict(color='orange', width=1, dash='dash')))
 
 
     if log_scale:  # Apply log scale if selected

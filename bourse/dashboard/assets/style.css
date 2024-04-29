@@ -796,6 +796,7 @@ there.
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   color: #ffffff;
   display: flex;
+  margin-bottom: 20px;
 }
 
 
@@ -881,4 +882,24 @@ there.
 .current-page {
   color: #ffffff !important;
   background-color: #303030 !important;
+}
+
+.grid-container {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 100px);
+  /* You can adjust the height as needed */
+  gap: 10px;
+  /* You can adjust the gap between grid items */
+}
+
+.grid-item {
+  background-color: #303030;
+  /* Just for demonstration */
+  border: 1px solid #999;
+  /* Just for demonstration */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  /* Just for demonstration */
 }
