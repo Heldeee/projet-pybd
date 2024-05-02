@@ -296,6 +296,7 @@ def get_dataframe_for_tab(company_id):
     })
     return df_stats
 
+gray_color = "#b2b2b2"
 
 @app.callback(
     [ddep.Output('graph', 'figure')],
@@ -312,8 +313,8 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
         fig = go.Figure(layout=go.Layout(
             plot_bgcolor='#303030',
             paper_bgcolor='#303030',
-            font=dict(color='white'),
-            legend=dict(font=dict(color='white')),
+            font=dict(color=f'{gray_color}'),
+            legend=dict(font=dict(color=f'{gray_color}')),
         ))
         return [fig]
 
@@ -321,8 +322,8 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
         layout=go.Layout(
             plot_bgcolor='#303030',
             paper_bgcolor='#303030',
-            font=dict(color='white'),
-            legend=dict(font=dict(color='white')),
+            font=dict(color=f'{gray_color}'),
+            legend=dict(font=dict(color=f'{gray_color}')),
         )
     )
     
@@ -336,6 +337,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             """
             df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
             company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
+            company_symbol = companies.loc[companies['id'] == company, 'symbol'].iloc[0]
             avg = df_stock['close'].mean()
             if avg_option:
                 fig.add_trace(go.Scatter(x=df_stock.index,
@@ -343,6 +345,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                      mode='lines',
                                      name=f'{company_name} - Average',
                                      line=dict(color='orange', width=1, dash='dash')))
+            text = [f"Date: {date}<br>Open: {open}<br>High: {high}<br>Low: {low}<br>Close: {close}<br>Volume: {volume}" for date, open, high, low, close, volume in zip(df_stock.index, df_stock['open'], df_stock['high'], df_stock['low'], df_stock['close'], df_stock['volume'])]
             fig.add_trace(go.Candlestick(x=df_stock.index,
                                         open=df_stock['open'],
                                         high=df_stock['high'],
@@ -353,9 +356,8 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                         decreasing_line_color='orange',
                                         whiskerwidth=0.2,
                                         opacity=0.8,
-                                        hovertemplate='<b>Date</b>: %{x|%Y-%m-%d}<br>' +
-                                                  '<b>Price</b>: %{y:.2f}<extra></extra><br>' +
-                                                  f'<b>Company</b>: {company_name} - {company_symbol}'))
+                                        text=text,
+                                        hoverinfo="text"))
 
             if 'show_bollinger' in bollinger_bands:
                 df_stock['20_MA'] = df_stock['close'].rolling(window=20).mean()
@@ -378,12 +380,8 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                          line=dict(color='lightgreen', width=1),
                                          name='Lower Bollinger Band',
                                          fill='tonexty',
-                                         fillcolor='rgba(50,205,50,1)'))
+                                         fillcolor='rgba(186,85,211,0.3)'))
 
-                #fig.add_vrect(x0=df_stock.index[0], x1=df_stock.index[-1],
-                #              fillcolor='rgba(0,100,80,0.2)', opacity=0.2,
-                #              line=dict(width=0),
-                #              layer='below')
 
             fig.update_layout(title=f'Candlestick Chart for Company {company_id}',
                               xaxis_title='Date',
