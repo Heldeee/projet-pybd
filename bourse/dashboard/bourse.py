@@ -376,12 +376,14 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                          y=df_stock['20_MA'] - 2 * df_stock['20_std'],
                                          mode='lines',
                                          line=dict(color='lightgreen', width=1),
-                                         name='Lower Bollinger Band'))
+                                         name='Lower Bollinger Band',
+                                         fill='tonexty',
+                                         fillcolor='rgba(50,205,50,1)'))
 
-                fig.add_vrect(x0=df_stock.index[0], x1=df_stock.index[-1],
-                              fillcolor='rgba(0,100,80,0.2)', opacity=0.2,
-                              line=dict(width=0),
-                              layer='below')
+                #fig.add_vrect(x0=df_stock.index[0], x1=df_stock.index[-1],
+                #              fillcolor='rgba(0,100,80,0.2)', opacity=0.2,
+                #              line=dict(width=0),
+                #              layer='below')
 
             fig.update_layout(title=f'Candlestick Chart for Company {company_id}',
                               xaxis_title='Date',
@@ -436,7 +438,9 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                          y=df_stock['20_MA'] - 2 * df_stock['20_std'],
                                          mode='lines',
                                          line=dict(color='lightgreen', width=1),
-                                         name=f'{company_name} - Lower Bollinger Band'))
+                                         name=f'{company_name} - Lower Bollinger Band',
+                                         fill='tonexty',
+                                         fillcolor='rgba(186,85,211,0.3)'))
 
 
     if log_scale:  # Apply log scale if selected
