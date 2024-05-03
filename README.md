@@ -1,5 +1,13 @@
 # projet-pybd
 
+Modifier docker-compose.yml pour mettre vos répertoires à la place de /home/ricou
+
+1- Move boursorama dans docker/data
+2- Lancer ./launch_project -o start pour commencer le loading du database
+3- Aller sur localhost:8050 pour tester
+4- Si le loading crash a cause de la connection ou de la machine, effacer les images et relancer le script ./launch_project -o start
+5- Si localhost:8050 n'a pas de données alors que le loading est fini, lancer ./launch_project -o reload
+
 ## Analyzer
 
 Les données sont les cours d'entreprises de différentes bourses relevées toutes les 10 mn. Un fihcier est un DataFrame stocké en mode pickle (pd.read_pickle) qui correspond à toutes les entreprises d'un marché à un instant donné par le titre du fichier.
