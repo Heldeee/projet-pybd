@@ -118,16 +118,34 @@ def store_files(market, year):
     load_files_time = time.time()
     logger.info(f"Files loaded in {load_files_time - start_time} seconds")
 
+def load_everything():
+    store_files("peapme", "2023")
+    store_files("compB", "2023")
+    store_files("compA", "2023")
+    store_files("amsterdam", "2023")
+    store_files("peapme", "2022")
+    store_files("compB", "2022")
+    store_files("compA", "2022")
+    store_files("amsterdam", "2022")
+    store_files("peapme", "2021")
+    store_files("compB", "2021")
+    store_files("compA", "2021")
+    store_files("amsterdam", "2021")
+    store_files("compB", "2020")
+    store_files("compA", "2020")
+    store_files("amsterdam", "2020")
+    store_files("compB", "2019")
+    store_files("compA", "2019")
+    store_files("amsterdam", "2019")
+
 
 if __name__ == '__main__':
     start_time = time.time()
-    #store_files("compA", "2020")
-    #store_files("compB", "2020")
-    #store_files("amsterdam", "2020")
-    #companies_df = pd.DataFrame(new_companies).drop(columns=['cid'])
+    load_everything()
+    companies_df = pd.DataFrame(new_companies).drop(columns=['cid'])
     #logger.info(companies_df)
 
-    #db.df_write(companies_df, 'companies',commit=True, index=False)
+    db.df_write(companies_df, 'companies',commit=True, index=False)
 
     if False:
         db.execute("""
