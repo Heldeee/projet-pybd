@@ -21,7 +21,36 @@ server = app.server
 
 # Search bar with smart search (dropdown)
 companies = pd.read_sql_query("SELECT * FROM companies", engine)
+
+# Global variable to store selected markets
+selected_markets = []
+
+# Function to filter companies based on selected markets
+def filter_companies(selected_markets):
+    if not selected_markets:
+        return companies_options
+    else:
+        filtered_companies = companies[companies['mid'].isin(selected_markets)]
+        filtered_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row['id'] } for index, row in filtered_companies.iterrows()]
+        return filtered_options
+
 companies_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row['id'] } for index, row in companies.iterrows()]
+
+all_markets = pd.read_sql_query("SELECT id, name FROM markets", engine)
+
+pastel_colors = [
+    '204, 204, 255',  # Light blue
+    '255, 204, 204',  # Light pink
+    '204, 255, 204',  # Light green
+    '255, 255, 204',  # Light yellow
+    '255, 204, 255',  # Light purple
+    '204, 255, 255',  # Light cyan
+    '255, 230, 204',  # Light orange
+    '230, 255, 204',  # Light lime
+    '204, 230, 255',  # Light sky blue
+    '255, 204, 230'   # Light rose
+]
+
 
 app.layout = html.Div([
     html.Link(
@@ -45,9 +74,19 @@ app.layout = html.Div([
                 placeholder='Select one or more companies',
             ),
         ]),
+        dcc.Markdown('''#### Filter by Markets'''),
+        html.Div(className="component", children=[
+            dcc.Checklist(
+                id='markets-filters',
+                className='check-box',
+                options=[{'label': row['name'], 'value': row['id'] } for index, row in all_markets.iterrows()],
+                value='',
+                labelStyle={'display': 'inline-block'}
+            ),
+        ]),
         # Graph et tableau de données
-        html.Div(className="component", style={"flex": "1", "margin-top": "20px"}, children=[
-            dcc.Graph(id='graph'),
+        html.Div(className="component",  children=[
+            dcc.Graph(id='graph')
         ]),
         
         html.Div(className="component", children=[
@@ -123,19 +162,23 @@ app.layout = html.Div([
     ])
 ])
 
-@app.callback( ddep.Output('query-result', 'children'),
-               ddep.Input('execute-query', 'n_clicks'),
-               ddep.State('sql-query', 'value'),
-             )
-def run_query(n_clicks, query):
-    if n_clicks > 0:
-        try:
-            result_df = pd.read_sql_query(query, engine)
-            LOG.info(f"dataframe: {result_df}")
-            return html.Pre(result_df.to_string())
-        except Exception as e:
-            return html.Pre(str(e))
-    return "Enter a query and press execute."
+# Update selected markets global variable
+@app.callback(
+    ddep.Output('markets-filters', 'value'),
+    [ddep.Input('markets-filters', 'value')]
+)
+def update_selected_markets(selected_markets_value):
+    global selected_markets
+    selected_markets = selected_markets_value
+    return selected_markets_value
+
+# Update company dropdown options based on selected markets
+@app.callback(
+    ddep.Output('company-dropdown', 'options'),
+    [ddep.Input('markets-filters', 'value')]
+)
+def update_company_options(selected_markets):
+    return filter_companies(selected_markets)
 
 
 
@@ -330,7 +373,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
     )
     
     if graph_type == 'candlestick':
-        for company in company_id:
+        for id, company in enumerate(company_id):
             query = f"""
             SELECT date, open, high, low, close, volume
             FROM daystocks
@@ -340,6 +383,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
             company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
             company_symbol = companies.loc[companies['id'] == company, 'symbol'].iloc[0]
+            color = pastel_colors[id % len(pastel_colors)]
             avg = df_stock['close'].mean()
             if avg_option:
                 fig.add_trace(go.Scatter(x=df_stock.index,
@@ -354,8 +398,8 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                                         low=df_stock['low'],
                                         close=df_stock['close'],
                                         name=f'{company_name}',
-                                        increasing_line_color='lightgreen',
-                                        decreasing_line_color='orange',
+                                        increasing_line_color=f'rgb({color})',
+                                        decreasing_line_color='firebrick',
                                         whiskerwidth=0.2,
                                         opacity=0.8,
                                         text=text,
@@ -373,29 +417,22 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                 fig.add_trace(go.Scatter(x=df_stock.index,
                                          y=df_stock['20_MA'] + 2 * df_stock['20_std'],
                                          mode='lines',
-                                         line=dict(color='lightgreen', width=1),
+                                         line=dict(color=f'rgb({color})', width=1),
                                          name='Upper Bollinger Band'))
 
                 fig.add_trace(go.Scatter(x=df_stock.index,
                                          y=df_stock['20_MA'] - 2 * df_stock['20_std'],
                                          mode='lines',
-                                         line=dict(color='lightgreen', width=1),
+                                         line=dict(color=f'rgb({color})', width=1),
                                          name='Lower Bollinger Band',
                                          fill='tonexty',
-                                         fillcolor='rgba(186,85,211,0.3)'))
+                                         fillcolor=f'rgba({color},0.2)'))
 
 
-            fig.update_layout(title=f'Candlestick Chart for Company {company_id}',
-                            xaxis_title='Date',
-                            yaxis_title='Candlestick Price',
-                            xaxis_rangeslider_visible=False,
-                            plot_bgcolor='#303030',
-                            paper_bgcolor='#303030',
-                            font=dict(color=f'{gray_color}'),
-                            legend=dict(font=dict(color=f'{gray_color}')))
+            fig.update_layout(xaxis_rangeslider_visible=False)
 
     else:
-        for company in company_id:
+        for id, company in enumerate(company_id):
             query = f"""
             SELECT date, value
             FROM stocks
@@ -407,6 +444,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
             company_symbol = companies.loc[companies['id'] == company, 'symbol'].iloc[0]
             avg = df_stock['value'].mean()
+            color = pastel_colors[id % len(pastel_colors)]
             if avg_option:
                 fig.add_trace(go.Scatter(x=df_stock.index,
                                      y=np.full(df_stock.shape[0], avg),
@@ -416,7 +454,7 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             fig.add_trace(go.Scatter(x=df_stock.index,
                                  y=df_stock['value'],
                                  mode='lines',
-                                 line=dict(color='lightblue', width=1),
+                                 line=dict(color=f'rgb({color})', width=1),
                                  name=f'{company_name} - {company_symbol}',
                                  hovertemplate='<b>Date</b>: %{x|%Y-%m-%d}<br>' +
                                                   '<b>Price</b>: %{y:.2f}<extra></extra><br>' +
@@ -435,16 +473,15 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                 fig.add_trace(go.Scatter(x=df_stock.index,
                                          y=df_stock['20_MA'] + 2 * df_stock['20_std'],
                                          mode='lines',
-                                         line=dict(color='lightgreen', width=1),
+                                         line=dict(color=f'rgb({color})', width=1),
                                          name=f'{company_name} - Upper Bollinger Band'))
-
                 fig.add_trace(go.Scatter(x=df_stock.index,
                                          y=df_stock['20_MA'] - 2 * df_stock['20_std'],
                                          mode='lines',
-                                         line=dict(color='lightgreen', width=1),
+                                         line=dict(color=f'rgb({color})', width=1),
                                          name=f'{company_name} - Lower Bollinger Band',
                                          fill='tonexty',
-                                         fillcolor='rgba(186,85,211,0.3)'))
+                                         fillcolor=f'rgba({color}, 0.2)'))
 
 
     if log_scale:  # Apply log scale if selected
