@@ -316,6 +316,8 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             font=dict(color=f'{gray_color}'),
             legend=dict(font=dict(color=f'{gray_color}')),
         ))
+        fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor=f'{gray_color}')
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor=f'{gray_color}')
         return [fig]
 
     fig = go.Figure(
@@ -384,9 +386,13 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
 
 
             fig.update_layout(title=f'Candlestick Chart for Company {company_id}',
-                              xaxis_title='Date',
-                              yaxis_title='Candlestick Price',
-                              xaxis_rangeslider_visible=False)
+                            xaxis_title='Date',
+                            yaxis_title='Candlestick Price',
+                            xaxis_rangeslider_visible=False,
+                            plot_bgcolor='#303030',
+                            paper_bgcolor='#303030',
+                            font=dict(color=f'{gray_color}'),
+                            legend=dict(font=dict(color=f'{gray_color}')))
 
     else:
         for company in company_id:
@@ -451,6 +457,8 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
                     font=dict(color='white')
     )
 
+    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor=f'{gray_color}')
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor=f'{gray_color}')
 
     return [fig]
 
