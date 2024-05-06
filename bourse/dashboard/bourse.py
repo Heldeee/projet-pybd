@@ -4,7 +4,7 @@ import dash.dependencies as ddep
 import pandas as pd
 import sqlalchemy
 import plotly.graph_objects as go
-from dateutil.relativedelta import relativedelta
+from plotly.subplots import make_subplots
 import datetime as dt
 import numpy as np
 
@@ -91,52 +91,56 @@ app.layout = html.Div([
         
         html.Div(className="component", children=[
             html.Div(className="grid-container", children=[
-            dcc.DatePickerRange(
-                id='date-picker-range',
-                min_date_allowed=dt.datetime(2019, 1, 1),
-                max_date_allowed=dt.datetime.now(),
-                initial_visible_month=dt.datetime.now(),
-                start_date=dt.datetime(2019, 1, 1),
-                end_date=dt.datetime.now(),
-                className='DateInput_input',
-            ),
-            dcc.RadioItems(
-                id='graph-type',
-                className='check-box',
-                options=[
-                    {'label': 'Line', 'value': 'line'},
-                    {'label': 'Candlestick', 'value': 'candlestick'}
-                ],
-                value='line',
-                labelStyle={'display': 'inline-block'}
-            ),
-            dcc.Checklist(
-                id='bollinger-bands-checkbox',
-                className='check-box',
-                options=[
-                    {'label': 'Bollinger bands', 'value': 'show_bollinger'}
-                ],
-                value=[],
-                labelStyle={'display': 'block'}
-            ),
-            dcc.Checklist(
-                id='avg-checkbox',
-                className='check-box',
-                options=[
-                    {'label': 'Average', 'value': 'show_avg'}
-                ],
-                value=[],
-                labelStyle={'display': 'block'}
-            ),
-            dcc.Checklist(
-                id='log-scale-checkbox',
-                className='check-box',
-                options=[
-                    {'label': 'Log scale', 'value': 'log_scale'}
-                ],
-                value=[],
-                labelStyle={'display': 'block'}
-            ),
+                dcc.DatePickerRange(
+                    id='date-picker-range',
+                    min_date_allowed=dt.datetime(2019, 1, 1),
+                    max_date_allowed=dt.datetime.now(),
+                    initial_visible_month=dt.datetime.now(),
+                    start_date=dt.datetime(2019, 1, 1),
+                    end_date=dt.datetime.now(),
+                    className='DateInput_input',
+                ),
+                dcc.RadioItems(
+                    id='graph-type',
+                    className='check-box-radio',
+                    options=[
+                        {'label': html.Img(src="/assets/curve.svg",
+                                           style={'width': '30px', 'height': '30px'},
+                                           className='check-box-item'),
+                        'value': 'line'},
+                        {'label': html.Img(src="/assets/candles.svg",
+                                           style={'width': '30px', 'height': '30px'},
+                                           className='check-box-item'),
+                        'value': 'candlestick'},
+                        {'label': html.Img(src="/assets/boll.svg",
+                                             style={'width': '30px', 'height': '30px'},
+                                             className='check-box-item'),
+                         'value': 'bollinger'}
+                    ],
+                    value='line',
+                    inputStyle={'display': 'none'},
+                    persistence=True,
+                    persisted_props=['value'],
+                    persistence_type='session',
+                ),
+                dcc.Checklist(
+                    id='avg-checkbox',
+                    className='check-box',
+                    options=[
+                        {'label': 'Average', 'value': 'show_avg'}
+                    ],
+                    value=[],
+                    labelStyle={'display': 'block'}
+                ),
+                dcc.Checklist(
+                    id='log-scale-checkbox',
+                    className='check-box',
+                    options=[
+                        {'label': 'Log scale', 'value': 'log_scale'}
+                    ],
+                    value=[],
+                    labelStyle={'display': 'block'}
+                ),
             ]),
         ]),
         
@@ -347,11 +351,10 @@ gray_color = "#b2b2b2"
      ddep.Input('date-picker-range', 'start_date'),
      ddep.Input('date-picker-range', 'end_date'),
      ddep.Input('graph-type', 'value'),
-     ddep.Input('bollinger-bands-checkbox', 'value'),
      ddep.Input('avg-checkbox', 'value'),
-     ddep.Input('log-scale-checkbox', 'value')]  # New input for log scale option
+     ddep.Input('log-scale-checkbox', 'value')]
 )
-def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_bands=None, avg_option=False, log_scale=False):  # Updated function signature
+def update_graph(company_id, start_date, end_date, graph_type='line', avg_option=False, log_scale=False):
     if company_id is None:
         fig = go.Figure(layout=go.Layout(
             plot_bgcolor='#303030',
@@ -363,15 +366,16 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
         fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor=f'{gray_color}')
         return [fig]
 
-    fig = go.Figure(
-        layout=go.Layout(
-            plot_bgcolor='#303030',
-            paper_bgcolor='#303030',
-            font=dict(color=f'{gray_color}'),
-            legend=dict(font=dict(color=f'{gray_color}')),
-        )
+    fig = make_subplots(
+        rows=2, cols=1,
+        row_heights=[0.8, 0.2],
+        shared_xaxes=True,
+        vertical_spacing=0.02,
+        subplot_titles=('Stock Price', 'Volume'),
+        specs=[[{"type": "scatter"}],
+               [{"type": "bar"}]]
     )
-    
+
     if graph_type == 'candlestick':
         for id, company in enumerate(company_id):
             query = f"""
@@ -387,54 +391,37 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             avg = df_stock['close'].mean()
             if avg_option:
                 fig.add_trace(go.Scatter(x=df_stock.index,
-                                     y=np.full(df_stock.shape[0], avg),
-                                     mode='lines',
-                                     name=f'{company_name} - Average',
-                                     line=dict(color='orange', width=1, dash='dash')))
+                                         y=np.full(df_stock.shape[0], avg),
+                                         mode='lines',
+                                         hoveron='points',
+                                         name=f'{company_name} - Average',
+                                         line=dict(color='orange', width=1, dash='dash')),
+                               row=1, col=1)
             text = [f"Date: {date}<br>Open: {open}<br>High: {high}<br>Low: {low}<br>Close: {close}<br>Volume: {volume}" for date, open, high, low, close, volume in zip(df_stock.index, df_stock['open'], df_stock['high'], df_stock['low'], df_stock['close'], df_stock['volume'])]
             fig.add_trace(go.Candlestick(x=df_stock.index,
-                                        open=df_stock['open'],
-                                        high=df_stock['high'],
-                                        low=df_stock['low'],
-                                        close=df_stock['close'],
-                                        name=f'{company_name}',
-                                        increasing_line_color=f'rgb({color})',
-                                        decreasing_line_color='firebrick',
-                                        whiskerwidth=0.2,
-                                        opacity=0.8,
-                                        text=text,
-                                        hoverinfo="text"))
+                                         open=df_stock['open'],
+                                         high=df_stock['high'],
+                                         low=df_stock['low'],
+                                         close=df_stock['close'],
+                                         name=f'{company_name}',
+                                         increasing_line_color=f'rgb({color})',
+                                         decreasing_line_color='firebrick',
+                                         whiskerwidth=0.2,
+                                         opacity=0.8,
+                                         text=text,
+                                         hoverinfo="text"),
+                           row=1, col=1)
 
-            if 'show_bollinger' in bollinger_bands:
-                df_stock['20_MA'] = df_stock['close'].rolling(window=20).mean()
-                df_stock['20_std'] = df_stock['close'].rolling(window=20).std()
+            fig.add_trace(go.Bar(x=df_stock.index,
+                                 y=df_stock['volume'],
+                                 name=f'{company_name} - Volume',
+                                 marker_color=f'rgba({color}, 0.6)'),
+                           row=2, col=1)
 
-                fig.add_trace(go.Scatter(x=df_stock.index,
-                                         y=df_stock['20_MA'],
-                                         mode='lines',
-                                         name='20-day Moving Average'))
-
-                fig.add_trace(go.Scatter(x=df_stock.index,
-                                         y=df_stock['20_MA'] + 2 * df_stock['20_std'],
-                                         mode='lines',
-                                         line=dict(color=f'rgb({color})', width=1),
-                                         name='Upper Bollinger Band'))
-
-                fig.add_trace(go.Scatter(x=df_stock.index,
-                                         y=df_stock['20_MA'] - 2 * df_stock['20_std'],
-                                         mode='lines',
-                                         line=dict(color=f'rgb({color})', width=1),
-                                         name='Lower Bollinger Band',
-                                         fill='tonexty',
-                                         fillcolor=f'rgba({color},0.2)'))
-
-
-            fig.update_layout(xaxis_rangeslider_visible=False)
-
-    else:
+    elif graph_type == 'line':
         for id, company in enumerate(company_id):
             query = f"""
-            SELECT date, value
+            SELECT date, value, volume
             FROM stocks
             WHERE cid = {company} AND date >= '{start_date}' AND date <= '{end_date}'
             ORDER BY date
@@ -447,55 +434,100 @@ def update_graph(company_id, start_date, end_date, graph_type='line', bollinger_
             color = pastel_colors[id % len(pastel_colors)]
             if avg_option:
                 fig.add_trace(go.Scatter(x=df_stock.index,
-                                     y=np.full(df_stock.shape[0], avg),
-                                     mode='lines',
-                                     name=f'{company_name} - Average',
-                                     line=dict(color='orange', width=1, dash='dash')))
+                                         y=np.full(df_stock.shape[0], avg),
+                                         mode='lines',
+                                         name=f'{company_name} - Average',
+                                         line=dict(color='orange', width=1, dash='dash')),
+                               row=1, col=1)
             fig.add_trace(go.Scatter(x=df_stock.index,
-                                 y=df_stock['value'],
-                                 mode='lines',
-                                 line=dict(color=f'rgb({color})', width=1),
-                                 name=f'{company_name} - {company_symbol}',
-                                 hovertemplate='<b>Date</b>: %{x|%Y-%m-%d}<br>' +
-                                                  '<b>Price</b>: %{y:.2f}<extra></extra><br>' +
-                                                  f'<b>Company</b>: {company_name} - {company_symbol}'
-                                 ))
+                                     y=df_stock['value'],
+                                     mode='lines',
+                                     hoveron='points',
+                                     line=dict(color=f'rgb({color})', width=1),
+                                     name=f'{company_name} - {company_symbol}',
+                                     hovertemplate='<b>Date</b>: %{x|%Y-%m-%d}<br>' +
+                                                    '<b>Price</b>: %{y:.2f}<extra></extra><br>' +
+                                                    f'<b>Company</b>: {company_name} - {company_symbol}'),
+                           row=1, col=1)
 
-            if 'show_bollinger' in bollinger_bands:
-                df_stock['20_MA'] = df_stock['value'].rolling(window=20).mean()
-                df_stock['20_std'] = df_stock['value'].rolling(window=20).std()
+            fig.add_trace(go.Bar(x=df_stock.index,
+                                 y=df_stock['volume'],
+                                 name=f'{company_name} - Volume',
+                                 marker_color=f'rgba({color}, 0.6)'),
+                           row=2, col=1)
 
+    elif graph_type == 'bollinger':
+        for id, company in enumerate(company_id):
+            query = f"""
+            SELECT date, value, volume
+            FROM stocks
+            WHERE cid = {company} AND date >= '{start_date}' AND date <= '{end_date}'
+            ORDER BY date
+            """
+
+            df_stock = pd.read_sql_query(query, engine, index_col='date', parse_dates=['date'])
+            company_name = companies.loc[companies['id'] == company, 'name'].iloc[0]
+            company_symbol = companies.loc[companies['id'] == company, 'symbol'].iloc[0]
+            avg = df_stock['value'].mean()
+            color = pastel_colors[id % len(pastel_colors)]
+            if avg_option:
                 fig.add_trace(go.Scatter(x=df_stock.index,
-                                         y=df_stock['20_MA'],
+                                         y=np.full(df_stock.shape[0], avg),
                                          mode='lines',
-                                         name=f'{company_name} - 20-day Moving Average'))
+                                         hoveron='points',
+                                         name=f'{company_name} - Average',
+                                         line=dict(color='orange', width=1, dash='dash')),
+                               row=1, col=1)
 
-                fig.add_trace(go.Scatter(x=df_stock.index,
-                                         y=df_stock['20_MA'] + 2 * df_stock['20_std'],
-                                         mode='lines',
-                                         line=dict(color=f'rgb({color})', width=1),
-                                         name=f'{company_name} - Upper Bollinger Band'))
-                fig.add_trace(go.Scatter(x=df_stock.index,
-                                         y=df_stock['20_MA'] - 2 * df_stock['20_std'],
-                                         mode='lines',
-                                         line=dict(color=f'rgb({color})', width=1),
-                                         name=f'{company_name} - Lower Bollinger Band',
-                                         fill='tonexty',
-                                         fillcolor=f'rgba({color}, 0.2)'))
+            df_stock['20_MA'] = df_stock['value'].rolling(window=20).mean()
+            df_stock['20_std'] = df_stock['value'].rolling(window=20).std()
 
+            fig.add_trace(go.Scatter(x=df_stock.index,
+                                     y=df_stock['20_MA'],
+                                     mode='lines',
+                                     name=f'{company_name} - 20-day Moving Average'),
+                           row=1, col=1)
+
+            fig.add_trace(go.Scatter(x=df_stock.index,
+                                        y=df_stock['20_MA'] + 2 * df_stock['20_std'],
+                                        mode='lines',
+                                        line=dict(color=f'rgb({color})', width=1),
+                                        name=f'{company_name} - Upper Bollinger Band'),
+                           row=1, col=1)
+            fig.add_trace(go.Scatter(x=df_stock.index,
+                                        y=df_stock['20_MA'] - 2 * df_stock['20_std'],
+                                        mode='lines',
+                                        line=dict(color=f'rgb({color})', width=1),
+                                        name=f'{company_name} - Lower Bollinger Band',
+                                        fill='tonexty',
+                                        fillcolor=f'rgba({color}, 0.2)'),
+                           row=1, col=1)
+
+            fig.add_trace(go.Bar(x=df_stock.index,
+                                 y=df_stock['volume'],
+                                 name=f'{company_name} - Volume',
+                                 marker_color=f'rgba({color}, 0.6)'),
+                           row=2, col=1)
 
     if log_scale:  # Apply log scale if selected
-        fig.update_yaxes(type='log')
+        fig.update_yaxes(type='log', row=1, col=1)
 
-    fig.update_layout(title='Stock Prices Comparison',
-                    yaxis_title='Stock Price',
-                    xaxis_rangeslider_visible=False,
-                    grid=dict(rows=1, columns=1, pattern='independent'),
-                    font=dict(color='white')
+    fig.update_layout(
+        plot_bgcolor='#303030',
+        paper_bgcolor='#303030',
+        font=dict(color=f'{gray_color}'),
+        legend=dict(font=dict(color=f'{gray_color}')),
+        title='Stock Prices Comparison',
+        yaxis_title='Stock Price',
+        xaxis_rangeslider_visible=False,
+        grid=dict(rows=1, columns=1, pattern='independent')
     )
 
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor=f'{gray_color}')
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor=f'{gray_color}')
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor=f'{gray_color}', row=1, col=1)
+    fig.update_yaxes(showgrid=False, row=2, col=1)
+
+    fig.update_layout(dragmode="pan")
 
     return [fig]
 

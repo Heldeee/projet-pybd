@@ -836,6 +836,7 @@ there.
 
 #export-button:hover {
   background-color: #007bff;
+  transition: background-color 0.3s ease-in-out;
 }
 
 .previous-next-container {
@@ -872,6 +873,7 @@ there.
 
 #date-range-button:hover {
   background-color: #007bff;
+  transition: background-color 0.3s ease;
 }
 
 #date-range-button:focus {
@@ -901,4 +903,22 @@ there.
   justify-content: center;
   font-size: 24px;
   /* Just for demonstration */
+}
+
+.check-box-item {
+  display: inline-block;
+  border: 1px solid #ffffff;
+  border-radius: 5px;
+  margin-right: 5px;
+  padding: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.check-box-item:hover {
+  background-color: #929292;
+}
+
+.check-box-radio {
+  width: fit-content;
+  display: flex;
 }
