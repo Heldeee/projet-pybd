@@ -885,28 +885,43 @@ there.
   background-color: #303030 !important;
 }
 
-.grid-container {
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(3, 100px);
-  /* You can adjust the height as needed */
-  gap: 10px;
-  /* You can adjust the gap between grid items */
+.component {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #303030;
+  padding: 20px;
+  border-radius: 10px;
 }
 
-.grid-item {
-  background-color: #303030;
-  /* Just for demonstration */
-  border: 1px solid #999;
-  /* Just for demonstration */
+.header {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  /* Just for demonstration */
+  margin-bottom: 20px;
+}
+
+.options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.check-box {
+  margin: 0 10px;
+}
+
+.DateInput_input {
+  background-color: #ffffff;
+  border-radius: 5px;
+  padding: 10px;
 }
 
 .check-box-item {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid #ffffff;
   border-radius: 5px;
   margin-right: 5px;
@@ -919,6 +934,28 @@ there.
 }
 
 .check-box-radio {
-  width: fit-content;
+  width: 100%;
   display: flex;
+  justify-content: center;
+}
+
+.label-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  margin-right: 5px;
+}
+
+.check-box .form-check-input {
+  border-color: #ffffff;
+}
+
+.check-box .form-check-input:checked {
+  background-color: #929292;
+  border-color: #929292;
+}
+
+.log-scale-label {
+  color: #ffffff;
+  font-weight: bold;
 }

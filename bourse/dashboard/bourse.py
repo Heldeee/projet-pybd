@@ -1,5 +1,6 @@
 import dash
 from dash import dcc, html, dash_table
+import dash_bootstrap_components as dbc
 import dash.dependencies as ddep
 import pandas as pd
 import sqlalchemy
@@ -38,6 +39,8 @@ companies_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row
 
 all_markets = pd.read_sql_query("SELECT id, name FROM markets", engine)
 
+today = dt.datetime(2023, 12, 31)
+
 pastel_colors = [
     '204, 204, 255',  # Light blue
     '255, 204, 204',  # Light pink
@@ -50,7 +53,6 @@ pastel_colors = [
     '204, 230, 255',  # Light sky blue
     '255, 204, 230'   # Light rose
 ]
-
 
 app.layout = html.Div([
     html.Link(
@@ -85,63 +87,87 @@ app.layout = html.Div([
             ),
         ]),
         # Graph et tableau de données
-        html.Div(className="component",  children=[
+        html.Div(className="component", children=[
             dcc.Graph(id='graph')
         ]),
         
         html.Div(className="component", children=[
-            html.Div(className="grid-container", children=[
+            html.Div(className="header", children=[
                 dcc.DatePickerRange(
                     id='date-picker-range',
                     min_date_allowed=dt.datetime(2019, 1, 1),
-                    max_date_allowed=dt.datetime.now(),
-                    initial_visible_month=dt.datetime.now(),
+                    max_date_allowed=today,
+                    initial_visible_month=today,
                     start_date=dt.datetime(2019, 1, 1),
-                    end_date=dt.datetime.now(),
+                    end_date=today,
                     className='DateInput_input',
+                ),
+                dcc.RadioItems(
+                    id='date-range-selector',
+                    options=[
+                        {'label': '1D', 'value': '1d'},
+                        {'label': '5D', 'value': '5d'},
+                        {'label': '1M', 'value': '1m'},
+                        {'label': '3M', 'value': '3m'},
+                        {'label': '6M', 'value': '6m'},
+                        {'label': '1Y', 'value': '1y'},
+                        {'label': '2Y', 'value': '2y'},
+                        {'label': '5Y', 'value': '5y'}
+                    ],
+                    value='1m',  # Set the default value
+                    labelStyle={'display': 'inline', 'marginRight': '10px'},
+                    inputStyle={"marginRight": "5px"}
                 ),
                 dcc.RadioItems(
                     id='graph-type',
                     className='check-box-radio',
                     options=[
-                        {'label': html.Img(src="/assets/curve.svg",
-                                           style={'width': '30px', 'height': '30px'},
-                                           className='check-box-item'),
+                        {'label': html.Div(className='check-box-item', children=[
+                            html.Img(src="/assets/curve.svg", className='label-img'),
+                            html.P('Line')
+                        ]),
                         'value': 'line'},
-                        {'label': html.Img(src="/assets/candles.svg",
-                                           style={'width': '30px', 'height': '30px'},
-                                           className='check-box-item'),
+                        {'label': html.Div(className='check-box-item', children=[
+                            html.Img(src="/assets/candles.svg", className='label-img'),
+                            html.P('Candlestick')
+                        ]),
                         'value': 'candlestick'},
-                        {'label': html.Img(src="/assets/boll.svg",
-                                             style={'width': '30px', 'height': '30px'},
-                                             className='check-box-item'),
-                         'value': 'bollinger'}
+                        {'label': html.Div(className='check-box-item', children=[
+                            html.Img(src="/assets/boll.svg", className='label-img'),
+                            html.P('Bollinger')
+                        ]),
+                        'value': 'bollinger'}
                     ],
                     value='line',
                     inputStyle={'display': 'none'},
                     persistence=True,
                     persisted_props=['value'],
                     persistence_type='session',
-                ),
-                dcc.Checklist(
+                    style={'marginLeft': '10px'}
+                )
+            ]),
+            html.Div(className="options", children=[
+                dbc.Checklist(
                     id='avg-checkbox',
                     className='check-box',
                     options=[
                         {'label': 'Average', 'value': 'show_avg'}
                     ],
                     value=[],
-                    labelStyle={'display': 'block'}
+                    inline=True,
+                    switch=True,
+                    style={'marginRight': '10px'}
                 ),
-                dcc.Checklist(
+                dbc.Checklist(
                     id='log-scale-checkbox',
                     className='check-box',
                     options=[
                         {'label': 'Log scale', 'value': 'log_scale'}
                     ],
                     value=[],
-                    labelStyle={'display': 'block'}
-                ),
-            ]),
+                    switch=True
+                )
+            ])
         ]),
         
         html.Div(className="dash-table", children=[
@@ -165,6 +191,44 @@ app.layout = html.Div([
                         '''),
     ])
 ])
+
+@app.callback(
+    [ddep.Output('date-picker-range', 'start_date'),
+     ddep.Output('date-picker-range', 'end_date')],
+    [ddep.Input('date-range-selector', 'value')]
+)
+def update_date_range(date_range):
+    today = dt.datetime(2023, 12, 31)
+    if date_range == '1d':
+        start_date = today - dt.timedelta(days=1)
+        end_date = today
+    elif date_range == '5d':
+        start_date = today - dt.timedelta(days=5)
+        end_date = today
+    elif date_range == '1m':
+        start_date = today - dt.timedelta(days=30)
+        end_date = today
+    elif date_range == '3m':
+        start_date = today - dt.timedelta(days=90)
+        end_date = today
+    elif date_range == '6m':
+        start_date = today - dt.timedelta(days=180)
+        end_date = today
+    elif date_range == '1y':
+        start_date = today - dt.timedelta(days=365)
+        end_date = today
+    elif date_range == '2y':
+        start_date = today - dt.timedelta(days=730)
+        end_date = today
+    elif date_range == '5y':
+        start_date = today - dt.timedelta(days=1825)
+        end_date = today
+    else:
+        start_date = dt.datetime(2019, 1, 1)
+        end_date = today
+
+    return start_date, end_date
+
 
 # Update selected markets global variable
 @app.callback(
