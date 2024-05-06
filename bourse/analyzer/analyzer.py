@@ -149,17 +149,18 @@ if __name__ == '__main__':
 
     if False:
         db.execute("""
-        INSERT INTO daystocks (date, cid, open, close, high, low, volume)
-        SELECT
-            date_trunc('day', date) AS date,
-            cid,
-            first_value(value) OVER (PARTITION BY cid, date_trunc('day', date) ORDER BY date ASC) AS open,
-            last_value(value) OVER (PARTITION BY cid, date_trunc('day', date) ORDER BY date ASC) AS close,
-            max(value) OVER (PARTITION BY cid, date_trunc('day', date)) AS high,
-            min(value) OVER (PARTITION BY cid, date_trunc('day', date)) AS low,
-            sum(volume) OVER (PARTITION BY cid, date_trunc('day', date)) AS volume
-        FROM
-            stocks;"""
+INSERT INTO daystocks (date, cid, open, close, high, low, volume)
+SELECT DISTINCT ON (date_trunc('day', s.date), s.cid)
+    date_trunc('day', s.date) AS date,
+    s.cid,
+    first_value(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid ORDER BY s.date) AS open,
+    last_value(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid ORDER BY s.date RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS close,
+    max(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid) AS high,
+    min(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid) AS low,
+    sum(s.volume) OVER (PARTITION BY date_trunc('day', s.date), s.cid) AS volume
+FROM stocks s
+ORDER BY date_trunc('day', s.date), s.cid, s.date;
+"""
         , commit=True)
 
     end_time = time.time()  # Record the end time
