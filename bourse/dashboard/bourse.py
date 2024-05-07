@@ -54,6 +54,25 @@ pastel_colors = [
     '255, 204, 230'   # Light rose
 ]
 
+period_selector = [
+    {'label': html.P('1D', className='check-box-item'), 
+        'value': '1d'},
+    {'label': html.P('5D', className='check-box-item'),
+        'value': '5d'},
+    {'label': html.P('1M', className='check-box-item'),
+        'value': '1m'},
+    {'label': html.P('3M', className='check-box-item'),
+        'value': '3m'},
+    {'label': html.P('6M', className='check-box-item'),
+        'value': '6m'},
+    {'label': html.P('1Y', className='check-box-item'),
+        'value': '1y'},
+    {'label': html.P('2Y', className='check-box-item'),
+        'value': '2y'},
+    {'label': html.P('5Y', className='check-box-item'),
+        'value': '5y'}
+]
+
 app.layout = html.Div([
     html.Link(
         rel='stylesheet',
@@ -80,19 +99,15 @@ app.layout = html.Div([
         html.Div(className="component", children=[
             dcc.Checklist(
                 id='markets-filters',
-                className='check-box',
+                className='filter-grid',
                 options=[{'label': row['name'], 'value': row['id'] } for index, row in all_markets.iterrows()],
                 value='',
                 labelStyle={'display': 'inline-block'}
             ),
         ]),
-        # Graph et tableau de données
+        # Date components
         html.Div(className="component", children=[
-            dcc.Graph(id='graph')
-        ]),
-        
-        html.Div(className="component", children=[
-            html.Div(className="header", children=[
+            html.Div(className="options-grid", children=[
                 dcc.DatePickerRange(
                     id='date-picker-range',
                     min_date_allowed=dt.datetime(2019, 1, 1),
@@ -104,19 +119,11 @@ app.layout = html.Div([
                 ),
                 dcc.RadioItems(
                     id='date-range-selector',
-                    options=[
-                        {'label': '1D', 'value': '1d'},
-                        {'label': '5D', 'value': '5d'},
-                        {'label': '1M', 'value': '1m'},
-                        {'label': '3M', 'value': '3m'},
-                        {'label': '6M', 'value': '6m'},
-                        {'label': '1Y', 'value': '1y'},
-                        {'label': '2Y', 'value': '2y'},
-                        {'label': '5Y', 'value': '5y'}
-                    ],
+                    className='period-selector',
+                    options=period_selector,
                     value='1m',  # Set the default value
                     labelStyle={'display': 'inline', 'marginRight': '10px'},
-                    inputStyle={"marginRight": "5px"}
+                    inputStyle={'display': 'none'}
                 ),
                 dcc.RadioItems(
                     id='graph-type',
@@ -144,30 +151,34 @@ app.layout = html.Div([
                     persisted_props=['value'],
                     persistence_type='session',
                     style={'marginLeft': '10px'}
-                )
-            ]),
-            html.Div(className="options", children=[
-                dbc.Checklist(
-                    id='avg-checkbox',
-                    className='check-box',
-                    options=[
-                        {'label': 'Average', 'value': 'show_avg'}
-                    ],
-                    value=[],
-                    inline=True,
-                    switch=True,
-                    style={'marginRight': '10px'}
                 ),
-                dbc.Checklist(
-                    id='log-scale-checkbox',
-                    className='check-box',
-                    options=[
-                        {'label': 'Log scale', 'value': 'log_scale'}
-                    ],
-                    value=[],
-                    switch=True
-                )
-            ])
+                html.Div(className="mini-grid", children=[
+                    dbc.Checklist(
+                        id='avg-checkbox',
+                        className='check-box',
+                        options=[
+                            {'label': html.P('Show average', className='check-box-item'),
+                             'value': 'show_avg'}
+                        ],
+                        value=[],
+                        inputStyle={'display': 'none'}
+                    ),
+                    dbc.Checklist(
+                        id='log-scale-checkbox',
+                        className='check-box',
+                        options=[
+                            {'label': html.P('Log scale', className='check-box-item'),
+                             'value': 'log_scale'}
+                        ],
+                        value=[],
+                        inputStyle={'display': 'none'}
+                    )
+                ])
+            ]),
+        ]),
+        # Graph et tableau de données
+        html.Div(className="component", children=[
+            dcc.Graph(id='graph')
         ]),
         
         html.Div(className="dash-table", children=[

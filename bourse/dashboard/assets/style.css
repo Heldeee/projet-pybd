@@ -816,7 +816,6 @@ there.
 
 #company-dropdown {
   width: 100%;
-  margin-bottom: 20px;
   color: lightgray;
   background-color: #303030 !important;
 }
@@ -865,21 +864,6 @@ there.
   color: grey !important;
 }
 
-
-#date-range-button {
-  background-color: #303030;
-  color: #ffffff;
-}
-
-#date-range-button:hover {
-  background-color: #007bff;
-  transition: background-color 0.3s ease;
-}
-
-#date-range-button:focus {
-  background-color: #007bff;
-}
-
 .current-page {
   color: #ffffff !important;
   background-color: #303030 !important;
@@ -901,15 +885,8 @@ there.
   margin-bottom: 20px;
 }
 
-.options {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-}
-
 .check-box {
-  margin: 0 10px;
+  margin-left: 20px;
 }
 
 .DateInput_input {
@@ -958,4 +935,29 @@ there.
 .log-scale-label {
   color: #ffffff;
   font-weight: bold;
+}
+
+.options-grid {
+  display: grid;
+  justify-content: center;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.mini-grid {
+  display: grid;
+  grid-template-rows: repeat(2, auto);
+  grid-gap: 10px;
+}
+
+.period-selector {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-rows: auto auto;
+  grid-gap: 10px;
+  grid-template-columns: repeat(5, 1fr);
 }
