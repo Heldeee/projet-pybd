@@ -13,7 +13,7 @@ import mylogging
 class TimescaleStockMarketModel:
     """ Bourse model with TimeScaleDB persistence."""
 
-    def __init__(self, database, user=None, host=None, password=None, port=None):
+    def __init__(self, database, user=None, host=None, password=None, port=None, is_thread=False):
         """Create a TimescaleStockMarketModel
 
         database -- The name of the persistence database.
@@ -21,7 +21,7 @@ class TimescaleStockMarketModel:
                     database name by default.
 
         """
-
+        
         self.logger = mylogging.getLogger(__name__, filename="/tmp/bourse.log")
 
         self.__database = database
@@ -40,7 +40,8 @@ class TimescaleStockMarketModel:
         self.__market_id = {}  # id of markets from aliases
 
         self.logger.info("Setup database generates an error if it exists already, it's ok")
-        self._setup_database()
+        if not is_thread:
+            self._setup_database()
 
 
     def _setup_database(self):
@@ -140,6 +141,11 @@ class TimescaleStockMarketModel:
             return cursor.fetchall()
         except:
             pass
+
+
+    def get_connection(self):
+        """Get the connection to the database."""
+        return self.__connection
 
     def df_write(self, df, table, args=None, commit=False,
                  if_exists='append', index=True, index_label=None,

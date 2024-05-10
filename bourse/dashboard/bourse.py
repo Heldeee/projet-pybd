@@ -19,9 +19,11 @@ engine = sqlalchemy.create_engine(DATABASE_URI)
 
 app = dash.Dash(__name__,  title="Bourse", suppress_callback_exceptions=True)
 server = app.server
-
+try:
 # Search bar with smart search (dropdown)
-companies = pd.read_sql_query("SELECT * FROM companies", engine)
+    companies = pd.read_sql_query("SELECT * FROM companies", engine)
+except Exception as e:
+    LOG.error(f"Error while fetching data from the database: {e}")
 
 # Global variable to store selected markets
 selected_markets = []
@@ -34,8 +36,10 @@ def filter_companies(selected_markets):
         filtered_companies = companies[companies['mid'].isin(selected_markets)]
         filtered_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row['id'] } for index, row in filtered_companies.iterrows()]
         return filtered_options
-
-companies_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row['id'] } for index, row in companies.iterrows()]
+try:
+    companies_options = [{'label': row['name'] + " - " + row['symbol'], 'value': row['id'] } for index, row in companies.iterrows()]
+except Exception as e:
+    LOG.error(f"Error while creating companies options: {e}")
 
 all_markets = pd.read_sql_query("SELECT id, name FROM markets", engine)
 

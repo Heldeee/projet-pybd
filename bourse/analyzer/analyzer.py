@@ -33,6 +33,7 @@ def create_dataframe(files):
     return df
 
 def process_data(df, companies_df):
+    db_thread = tsdb.TimescaleStockMarketModel('bourse', 'ricou', 'db', 'monmdp', is_thread=True) 
     # Now you can access the name associated with a symbol directly from the hashmap
     merged_df = pd.merge(df, companies_df, how='inner', on='symbol')
     merged_df.rename(columns={'last': 'value'}, inplace=True)
@@ -45,11 +46,11 @@ def process_data(df, companies_df):
     merge_stocks_time = time.time()
 
     # Get cid in companies_df from name and symbol
-    db.df_write(stocks_df, 'stocks',commit=True, index=False)
+    db_thread.df_write(stocks_df, 'stocks',commit=True, index=False)
 
     # Checkpoint after writing to database
     write_db_time = time.time()
-    logger.info(f"Writing to database completed in {write_db_time - merge_stocks_time} seconds")
+    logger.info(f"||||| process_data() - Writing to database completed in {round(write_db_time - merge_stocks_time,2)} seconds")
 
     # Assuming new_companies is a list of dictionaries
 
@@ -70,14 +71,14 @@ def store_files(market, year):
     global id_count, symbol_map, new_companies
     df.loc[:, 'last'] = df['last'].str.replace('(c)', '').str.replace('(s)', '')
     df.loc[:, 'last'] = df['last'].str.replace(' ', '').astype(float)
-    logger.info(f"Data loaded in {time.time() - start_time} seconds")
+    logger.info(f"||||| store_files({market},{year}) - Data loaded in {round(time.time() - start_time,2)} seconds")
 
     df.drop(columns=['symbol'], inplace=True)
     df.reset_index(level=1, inplace=True)
 
     # Checkpoint after data preprocessing
     preprocess_time = time.time()
-    logger.info(f"Data preprocessed in {preprocess_time - start_time} seconds")
+    logger.info(f"||||| store_files({market},{year}) - Data preprocessed in {round(preprocess_time - start_time,2)} seconds")
 
     unique_symbols = df['symbol'].unique()
     unique_names = df.groupby('symbol')['name'].first()
@@ -103,27 +104,56 @@ def store_files(market, year):
         id_count += 1
     companies_df = pd.DataFrame(new_companies)
 
+    # Divide DataFrame into 12 chunks
     chunk_size = len(df) // 12
     chunks = [df.iloc[i:i + chunk_size] for i in range(0, len(df), chunk_size)]
-
-    processes = []
+    
     for chunk in chunks:
-        process = multiprocessing.Process(target=process_data, args=(chunk, companies_df))
-        processes.append(process)
-        process.start()
-    for process in processes:
-        process.join()
+        # Divide each chunk into sub-chunks based on the number of CPU cores
+        num_cores = multiprocessing.cpu_count()
+        sub_chunk_size = max(len(chunk) // num_cores, 1)
+        sub_chunks = [chunk.iloc[i:i + sub_chunk_size] for i in range(0, len(chunk), sub_chunk_size)]
+
+        processes = []
+        for sub_chunk in sub_chunks:
+            # Create a process for each sub-chunk
+            process = multiprocessing.Process(target=process_data, args=(sub_chunk, companies_df))
+            processes.append(process)
+            process.start()
+        
+        # Wait for all processes to finish
+        for process in processes:
+            process.join()
 
     # Checkpoint after loading files
     load_files_time = time.time()
-    logger.info(f"Files loaded in {load_files_time - start_time} seconds")
+    logger.info(f"||||| store_files({market},{year}) - stored in {round(load_files_time - start_time,2)} seconds")
+
+def witchcraft(start_date, end_date):
+    logger.info(f"Beggining whitchcraft for period {start_date}/{end_date}...")
+    db.execute("""
+    INSERT INTO daystocks (date, cid, open, close, high, low, volume)
+    SELECT DISTINCT ON (date_trunc('day', s.date), s.cid)
+        date_trunc('day', s.date) AS date,
+        s.cid,
+        first_value(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid ORDER BY s.date) AS open,
+        last_value(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid ORDER BY s.date RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS close,
+        max(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid) AS high,
+        min(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid) AS low,
+        sum(s.volume) OVER (PARTITION BY date_trunc('day', s.date), s.cid) AS volume
+    FROM stocks s
+    WHERE s.date BETWEEN '%s' AND '%s'
+    ORDER BY date_trunc('day', s.date), s.cid, s.date;
+""" % (start_date, end_date), commit=True)
+    logger.info(f"Whitchcraft done for period {start_date}/{end_date}.")
 
 def load_everything():
     store_files("peapme", "2023")
     store_files("compB", "2023")
     store_files("compA", "2023")
-    store_files("amsterdam", "2023")
-    store_files("peapme", "2022")
+    #store_files("amsterdam", "2023")
+    witchcraft('2023-01-01', '2023-12-31')
+    """store_files("peapme", "2022")
     store_files("compB", "2022")
     store_files("compA", "2022")
     store_files("amsterdam", "2022")
@@ -136,34 +166,18 @@ def load_everything():
     store_files("amsterdam", "2020")
     store_files("compB", "2019")
     store_files("compA", "2019")
-    store_files("amsterdam", "2019")
+    store_files("amsterdam", "2019")"""
 
-
-if __name__ == '__main__':
-    start_time = time.time()
-    load_everything()
     companies_df = pd.DataFrame(new_companies).drop(columns=['cid'])
-    #logger.info(companies_df)
 
     db.df_write(companies_df, 'companies',commit=True, index=False)
 
-    if False:
-        db.execute("""
-INSERT INTO daystocks (date, cid, open, close, high, low, volume)
-SELECT DISTINCT ON (date_trunc('day', s.date), s.cid)
-    date_trunc('day', s.date) AS date,
-    s.cid,
-    first_value(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid ORDER BY s.date) AS open,
-    last_value(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid ORDER BY s.date RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS close,
-    max(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid) AS high,
-    min(s.value) OVER (PARTITION BY date_trunc('day', s.date), s.cid) AS low,
-    sum(s.volume) OVER (PARTITION BY date_trunc('day', s.date), s.cid) AS volume
-FROM stocks s
-ORDER BY date_trunc('day', s.date), s.cid, s.date;
-"""
-        , commit=True)
+if __name__ == '__main__':
+    start_time = time.time()
+
+    load_everything()
 
     end_time = time.time()  # Record the end time
     execution_time = end_time - start_time  # Calculate the execution time
-    print(f"Total execution time: {execution_time} seconds")
-    print("Done")
+    logger.info(f"Total execution time: {execution_time} seconds")
+    logger.info("Done")
