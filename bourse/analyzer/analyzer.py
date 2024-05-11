@@ -130,6 +130,7 @@ def store_files(market, year):
     logger.info(f"||||| store_files({market},{year}) - stored in {round(load_files_time - start_time,2)} seconds")
 
 def witchcraft(start_date, end_date):
+    begin = time.time()
     logger.info(f"Beggining whitchcraft for period {start_date}/{end_date}...")
     db.execute("""
     INSERT INTO daystocks (date, cid, open, close, high, low, volume)
@@ -145,7 +146,8 @@ def witchcraft(start_date, end_date):
     WHERE s.date BETWEEN '%s' AND '%s'
     ORDER BY date_trunc('day', s.date), s.cid, s.date;
 """ % (start_date, end_date), commit=True)
-    logger.info(f"Whitchcraft done for period {start_date}/{end_date}.")
+    end = time.time()
+    logger.info(f"Whitchcraft done on period {start_date}/{end_date} in {round(end-begin,2)} seconds.")
 
 def load_everything():
     store_files("peapme", "2023")
@@ -153,20 +155,24 @@ def load_everything():
     store_files("compA", "2023")
     #store_files("amsterdam", "2023")
     witchcraft('2023-01-01', '2023-12-31')
-    """store_files("peapme", "2022")
+    store_files("peapme", "2022")
     store_files("compB", "2022")
     store_files("compA", "2022")
-    store_files("amsterdam", "2022")
+    #store_files("amsterdam", "2022")
+    witchcraft('2022-01-01', '2022-12-31')
     store_files("peapme", "2021")
     store_files("compB", "2021")
     store_files("compA", "2021")
-    store_files("amsterdam", "2021")
+    #store_files("amsterdam", "2021")
+    witchcraft('2021-01-01', '2021-12-31')
     store_files("compB", "2020")
     store_files("compA", "2020")
-    store_files("amsterdam", "2020")
+    #store_files("amsterdam", "2020")
+    witchcraft('2020-01-01', '2020-12-31')
     store_files("compB", "2019")
     store_files("compA", "2019")
-    store_files("amsterdam", "2019")"""
+    #store_files("amsterdam", "2019")
+    witchcraft('2019-01-01', '2019-12-31')
 
     companies_df = pd.DataFrame(new_companies).drop(columns=['cid'])
 
@@ -175,9 +181,9 @@ def load_everything():
 if __name__ == '__main__':
     start_time = time.time()
 
-    load_everything()
+#    load_everything()
 
     end_time = time.time()  # Record the end time
     execution_time = end_time - start_time  # Calculate the execution time
-    logger.info(f"Total execution time: {execution_time} seconds")
+    logger.info(f"Total execution time: {round(execution_time,2)} seconds")
     logger.info("Done")
