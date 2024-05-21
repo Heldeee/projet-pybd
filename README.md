@@ -1,6 +1,6 @@
 # projet-pybd
 
-Modifier docker-compose.yml pour mettre vos répertoires à la place de /home/ricou
+Modifier docker-compose.yml pour mettre vos répertoires à la place de $/ qui est le repertoire courrant. N'ounliez de faire `docker login` pour ne pas avoir de problemes avec les images.
 
 1- Move boursorama dans docker/data
 2- Lancer ./launch_project -o start pour commencer le loading du database
