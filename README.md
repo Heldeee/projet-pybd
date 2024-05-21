@@ -40,3 +40,18 @@ Plusieurs variables sont montrees:
 - Volume
 - Moyenne
 - Écart type
+
+
+### Contact:
+
+N'hesitez pas à nous contacter pour plus d'informations:
+
+ - Discord
+    - heldeee
+    - dangphuhung
+    - 4xoloto
+
+- Mail
+    - leo.devin@epita.fr
+    - phu-hung.dang@epita.fr
+    - alexandre1.huynh@epita.fr
