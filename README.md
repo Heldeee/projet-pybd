@@ -1,11 +1,19 @@
 # projet-pybd
 
-Modifier docker-compose.yml pour mettre vos répertoires à la place de $/ qui est le repertoire courrant. N'ounliez de faire `docker login` pour ne pas avoir de problemes avec les images.
+Modifier docker-compose.yml pour mettre vos répertoires à la place de $/ qui est le repertoire courrant. N'oubliez de faire `docker login` pour ne pas avoir de problemes avec les images.
 
-1- Move boursorama dans docker/data
-2- Lancer ./launch_project -o start pour commencer le loading du database
-3- Aller sur localhost:8050 pour tester
-4- Si le loading crash a cause de la connection ou de la machine, effacer les images et relancer le script ./launch_project -o start
+## Telechargement des données
+
+Afin de telecharger boursorama.tar, utiliser ce lien:
+
+https://acxpcq.db.files.1drv.com/y4m1rZorPP2kN8W6PGekjlKsY5CbZ4L2jhg4iXMGWWhe8xMIbmnDBYlZYJTnrH4_T_eCrjM_Ree83dgW-GkXhuyMHEuM5jMXnO4qewwjyOl_jXJMxiNvLI0QXu7Nau9Y4ynzQVg3TaEkQJTH9x6YP9FijI04pJsgGfhk-vCu2nWDqeA5CsFyfQG5Ks0JY6AyO918TiEm_IOxtt4yIiHsdhrQQ ou sur le site du cours.
+
+## Installation
+
+1- Move boursorama.tar dans docker/data, puis le decompresser `sudo tar -xvf bourosrama.tar`
+2- Lancer ./launch_project -o start pour commencer le loading du database, lorsque vous voyer le Dashboard crash avec code 3, Ctlr+C pour arreter le loading
+3- Relancer
+4- Si le loading crash a cause de la connection ou de la machine, effacer les images + `timescaldb/` et relancer le script ./launch_project -o start
 5- Si localhost:8050 n'a pas de données alors que le loading est fini, lancer ./launch_project -o reload
 
 ## Analyzer
