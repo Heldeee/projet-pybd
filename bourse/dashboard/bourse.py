@@ -204,7 +204,12 @@ app.layout = html.Div([
         dcc.Markdown('''
                      2024 - leo.devin - phu-hung.dang - alexandre1.huynh
                         '''),
-    ])
+    ]),
+    dcc.Interval(
+        id='interval-component',
+        interval=60*1000,  # in milliseconds
+        n_intervals=0
+    )
 ])
 
 @app.callback(
