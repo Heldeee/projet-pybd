@@ -227,6 +227,15 @@ def display_time_stats():
 if __name__ == '__main__':
     start_time = time.time()
 #    load_everything()
+
+    logger.info("Writing new companies to database...")
+    try:
+        companies_df = pd.DataFrame(new_companies).drop(columns=['cid'])
+        db.df_write(companies_df, 'companies',commit=True, index=False)
+    except Exception as e:
+        logger.error(f"Error writing new companies to database: {e}")
+    logger.info("New companies written to database, took %s seconds" % round((time.time() - start_time),2))
+
     end_time = time.time()  # Record the end time
     execution_time = end_time - start_time  # Calculate the execution time
     logger.info(f"Total execution time: {round(execution_time,2)} seconds")
